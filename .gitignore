@@ -1,5 +1,7 @@
 node_modules/
 .env
+*.log
+curl_out.txt
 # Firebase service account keys — never commit (any download filename)
 config/firebase-service-account.json
 **/firebase-adminsdk*.json
