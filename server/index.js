@@ -13,6 +13,7 @@ app.get('/health', (req, res) => {
 });
 
 app.use('/events', require('./routes/events'));
+app.use('/parse', require('./routes/parse'));
 
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
