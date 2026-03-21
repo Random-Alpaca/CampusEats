@@ -1,4 +1,5 @@
 const eventModel = require('../models/event');
+const ics = require('ics');
 
 const REQUIRED_EVENT_FIELDS = [
   'title',
@@ -115,8 +116,136 @@ async function vote(req, res, next) {
   }
 }
 
+async function exportCalendar(req, res, next) {
+  try {
+    const { id } = req.params;
+    const event = await eventModel.getEventById(id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    const now = new Date();
+    let year = now.getFullYear();
+    let month = now.getMonth() + 1; // ics module uses 1-indexed months
+    let date = now.getDate();
+    let hour = now.getHours();
+    let minute = now.getMinutes();
+    
+    const timeStr = typeof event.time === 'string' ? event.time.trim() : '';
+
+    // Simplified time parsing matching gemini.js time logic
+    let m = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (m) {
+      let h = parseInt(m[1], 10);
+      let min = parseInt(m[2], 10);
+      const ap = m[3] ? m[3].toUpperCase() : null;
+      if (ap === 'PM' && h !== 12) h += 12;
+      if (ap === 'AM' && h === 12) h = 0;
+      hour = h;
+      minute = min;
+    } else {
+      const single = timeStr.match(/^(\d{1,2})\s*(AM|PM)$/i);
+      if (single) {
+        let h = parseInt(single[1], 10);
+        const ap = single[2].toUpperCase();
+        if (ap === 'PM' && h !== 12) h += 12;
+        if (ap === 'AM' && h === 12) h = 0;
+        hour = h;
+        minute = 0;
+      }
+    }
+
+    const eventData = {
+      start: [year, month, date, hour, minute],
+      duration: { hours: 1, minutes: 0 },
+      title: event.title || 'Campus Eats Event',
+      description: `Food type: ${event.food_type || 'Unspecified'} | Time: ${event.time}`,
+      location: event.location || '',
+      geo: { lat: event.lat || 0, lon: event.lng || 0 },
+      status: 'CONFIRMED',
+      busyStatus: 'BUSY',
+    };
+
+    ics.createEvent(eventData, (error, value) => {
+      if (error) {
+        return res.status(500).json({ error: 'Failed to generate calendar event' });
+      }
+      res.setHeader('Content-Type', 'text/calendar');
+      res.setHeader('Content-Disposition', `attachment; filename="event-${id}.ics"`);
+      return res.send(value);
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function exportGoogleCalendar(req, res, next) {
+  try {
+    const { id } = req.params;
+    const event = await eventModel.getEventById(id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    const now = new Date();
+    let year = now.getFullYear();
+    let month = now.getMonth();
+    let date = now.getDate();
+    let hour = now.getHours();
+    let minute = now.getMinutes();
+
+    const timeStr = typeof event.time === 'string' ? event.time.trim() : '';
+
+    let m = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+    if (m) {
+      let h = parseInt(m[1], 10);
+      let min = parseInt(m[2], 10);
+      const ap = m[3] ? m[3].toUpperCase() : null;
+      if (ap === 'PM' && h !== 12) h += 12;
+      if (ap === 'AM' && h === 12) h = 0;
+      hour = h;
+      minute = min;
+    } else {
+      const single = timeStr.match(/^(\d{1,2})\s*(AM|PM)$/i);
+      if (single) {
+        let h = parseInt(single[1], 10);
+        const ap = single[2].toUpperCase();
+        if (ap === 'PM' && h !== 12) h += 12;
+        if (ap === 'AM' && h === 12) h = 0;
+        hour = h;
+        minute = 0;
+      }
+    }
+
+    // Build start/end Date objects (1 hour duration)
+    const start = new Date(year, month, date, hour, minute, 0);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+    // Format as YYYYMMDDTHHmmss (local time, no trailing Z)
+    const fmt = (d) => {
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    };
+
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: event.title || 'Campus Eats Event',
+      dates: `${fmt(start)}/${fmt(end)}`,
+      location: event.location || '',
+      details: `Food type: ${event.food_type || 'Unspecified'}`,
+    });
+
+    const gcalUrl = `https://calendar.google.com/calendar/render?${params.toString()}`;
+    return res.redirect(gcalUrl);
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   listEvents,
   createEvent,
   vote,
+  exportCalendar,
+  exportGoogleCalendar,
 };
