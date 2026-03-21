@@ -260,7 +260,7 @@ export function Home() {
                 delay: 0.2,
               },
               {
-                img: "images/HomePage/4.png",
+                img: "/images/HomePage/4.png",
                 bg: "bg-lime-100",
                 title: "Get Notified",
                 desc: "Receive instant alerts the moment new food events are posted.",
@@ -275,11 +275,11 @@ export function Home() {
                 transition={{ duration: 0.5, delay: item.delay }}
                 whileHover={{ y: -6 }}
               >
-                <Card className="p-6 text-center border-2 border-transparent hover:border-orange-200 transition-all duration-200 rounded-3xl shadow-sm hover:shadow-md">
+                <Card className="group p-6 text-center border-2 border-transparent hover:border-orange-200 transition-all duration-200 rounded-3xl shadow-sm hover:shadow-md">
                   {/* Step number */}
-                  <div className="text-xs font-bold text-gray-300 mb-3 uppercase tracking-widest">Step {i + 1}</div>
-                  <div className={`w-14 h-14 ${item.bg} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
-                    <img src={item.img} alt={item.title} className="w-10 h-10 object-contain" />
+                  <div className="text-xs font-bold text-gray-300 group-hover:text-orange-500 transition-colors duration-300 mb-3 uppercase tracking-widest">Step {i + 1}</div>
+                  <div className="w-24 h-24 mx-auto mb-4">
+                    <img src={item.img} alt={item.title} className="w-full h-full object-contain" />
                   </div>
                   <h3 className="font-black text-gray-800 mb-2 text-base">{item.title}</h3>
                   <p className="text-sm text-gray-400 leading-relaxed">{item.desc}</p>
@@ -291,7 +291,7 @@ export function Home() {
       </section>
 
       {/* Food category highlights */}
-      <section className="py-16 bg-gradient-to-br from-amber-50 to-orange-50">
+      <section className="py-16 bg-orange-50/50">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-black text-gray-900 mb-2">What's usually on offer?</h2>
@@ -299,12 +299,12 @@ export function Home() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {[
-              { emoji: "🍕", name: "Pizza", count: "142 events", color: "bg-orange-100 border-orange-200" },
-              { emoji: "🌮", name: "Tacos", count: "38 events", color: "bg-yellow-100 border-yellow-200" },
-              { emoji: "🧁", name: "Baked goods", count: "56 events", color: "bg-pink-100 border-pink-200" },
-              { emoji: "🍩", name: "Donuts", count: "24 events", color: "bg-rose-100 border-rose-200" },
-              { emoji: "🥗", name: "Salads", count: "19 events", color: "bg-lime-100 border-lime-200" },
-              { emoji: "☕", name: "Coffee", count: "87 events", color: "bg-amber-100 border-amber-200" },
+              { img: "/images/HomePage/5.png", name: "Pizza", count: "142 events", color: "bg-orange-100 border-orange-200" },
+              { img: "/images/HomePage/5.png", name: "Tacos", count: "38 events", color: "bg-orange-100 border-orange-200" },
+              { img: "/images/HomePage/8.png", name: "Baked goods", count: "56 events", color: "bg-orange-100 border-orange-200" },
+              { img: "/images/HomePage/8.png", name: "Donuts", count: "24 events", color: "bg-orange-100 border-orange-200" },
+              { img: "/images/HomePage/6.png", name: "Salads", count: "19 events", color: "bg-orange-100 border-orange-200" },
+              { img: "/images/HomePage/7.png", name: "Coffee", count: "87 events", color: "bg-orange-100 border-orange-200" },
             ].map((food, i) => (
               <motion.div
                 key={i}
@@ -315,7 +315,9 @@ export function Home() {
                 whileHover={{ scale: 1.05, y: -3 }}
                 className={`${food.color} border-2 rounded-3xl p-4 text-center cursor-pointer`}
               >
-                <div className="text-3xl mb-2">{food.emoji}</div>
+                <div className="w-10 h-10 mx-auto mb-2">
+                  <img src={food.img} alt={food.name} className="w-full h-full object-contain" />
+                </div>
                 <div className="font-bold text-gray-800 text-sm">{food.name}</div>
                 <div className="text-xs text-gray-400 mt-1">{food.count}</div>
               </motion.div>
