@@ -1,6 +1,11 @@
 import { Link, useLocation } from "react-router";
-import { UtensilsCrossed, Map, User, Home } from "lucide-react";
-import { Button } from "./ui/button";
+import { UtensilsCrossed } from "lucide-react";
+
+const NAV_LINKS = [
+  { to: "/", label: "Home" },
+  { to: "/events", label: "Events" },
+  { to: "/account", label: "Account" },
+];
 
 export function Navbar() {
   const location = useLocation();
@@ -8,55 +13,37 @@ export function Navbar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="bg-white border-b sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <div className="max-w-[1400px] mx-auto px-6">
+        <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-              <UtensilsCrossed className="w-5 h-5 text-white" />
+          <Link to="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-orange-600 rounded-lg flex items-center justify-center">
+              <UtensilsCrossed className="w-4.5 h-4.5 text-white" />
             </div>
-            <span className="text-xl">Campus Eats</span>
+            <span className="text-xl font-bold text-gray-900 tracking-tight">
+              Campus Eats
+            </span>
           </Link>
 
           {/* Navigation Links */}
-          <div className="flex items-center gap-1">
-            <Link to="/">
-              <Button
-                variant={isActive("/") ? "default" : "ghost"}
-                className={isActive("/") ? "gap-2 bg-orange-500 hover:bg-orange-600" : "gap-2"}
+          <div className="flex items-center gap-6">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`text-sm font-medium transition-colors relative py-4 ${
+                  isActive(link.to)
+                    ? "text-orange-600"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
               >
-                <Home className="w-4 h-4" />
-                Home
-              </Button>
-            </Link>
-            <Link to="/events">
-              <Button
-                variant={isActive("/events") ? "default" : "ghost"}
-                className={isActive("/events") ? "gap-2 bg-orange-500 hover:bg-orange-600" : "gap-2"}
-              >
-                <UtensilsCrossed className="w-4 h-4" />
-                Campus Events
-              </Button>
-            </Link>
-            <Link to="/map">
-              <Button
-                variant={isActive("/map") ? "default" : "ghost"}
-                className={isActive("/map") ? "gap-2 bg-orange-500 hover:bg-orange-600" : "gap-2"}
-              >
-                <Map className="w-4 h-4" />
-                Map
-              </Button>
-            </Link>
-            <Link to="/account">
-              <Button
-                variant={isActive("/account") ? "default" : "ghost"}
-                className={isActive("/account") ? "gap-2 bg-orange-500 hover:bg-orange-600" : "gap-2"}
-              >
-                <User className="w-4 h-4" />
-                Account
-              </Button>
-            </Link>
+                {link.label}
+                {isActive(link.to) && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-600 rounded-full" />
+                )}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
