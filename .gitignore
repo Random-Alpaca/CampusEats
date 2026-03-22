@@ -1,5 +1,8 @@
 node_modules/
 .env
+
+# Frontend build output (embeds env vars; do not commit)
+frontend/dist/
 *.log
 curl_out.txt
 # Firebase service account keys — never commit (any download filename)

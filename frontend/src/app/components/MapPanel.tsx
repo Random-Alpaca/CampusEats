@@ -30,6 +30,7 @@ export function MapPanel({
 
   // Initialize map
   useEffect(() => {
+    if (!MAPBOX_TOKEN) return;
     if (!mapContainer.current || map.current) return;
 
     mapboxgl.accessToken = MAPBOX_TOKEN;
@@ -190,6 +191,21 @@ export function MapPanel({
             maxZoom: 16,
           });
         };
+
+  if (!MAPBOX_TOKEN) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-gray-50 px-6 text-center">
+        <p className="max-w-md text-sm text-gray-600">
+          Map preview needs a Mapbox token. Add{" "}
+          <code className="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs">
+            VITE_MAPBOX_TOKEN
+          </code>{" "}
+          to the project root <code className="font-mono text-xs">.env</code>, then restart{" "}
+          <code className="font-mono text-xs">npm run dev</code>.
+        </p>
+      </div>
+    );
+  }
 
         return (
           <>
