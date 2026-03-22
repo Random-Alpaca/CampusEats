@@ -9,6 +9,9 @@ interface ApiEvent {
   lng: number;
   time: string;
   food_type: string;
+  organization: string;
+  date: string;
+  instagram_url: string;
   votes_available: number;
   votes_finished: number;
 }
@@ -17,10 +20,13 @@ interface ApiEvent {
 export interface Event {
   id: string;
   name: string;
+  organization: string;
   location: string;
+  date: string;
   time: string;
   foodType: string;
   foodAvailable: boolean;
+  instagramUrl: string;
   lat: number;
   lng: number;
   votesAvailable: number;
@@ -31,10 +37,13 @@ function mapApiEvent(raw: ApiEvent): Event {
   return {
     id: raw.id,
     name: raw.title,
+    organization: raw.organization || '',
     location: raw.location,
+    date: raw.date || '',
     time: raw.time,
     foodType: raw.food_type,
-    foodAvailable: !!raw.food_type && raw.food_type !== "",
+    foodAvailable: !!raw.food_type && raw.food_type !== '',
+    instagramUrl: raw.instagram_url || '',
     lat: raw.lat,
     lng: raw.lng,
     votesAvailable: raw.votes_available,

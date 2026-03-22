@@ -19,6 +19,9 @@ async function createEvent(data) {
     lng: toNum(data.lng),
     time: String(data.time ?? ''),
     food_type: String(data.food_type ?? ''),
+    organization: String(data.organization ?? ''),
+    date: String(data.date ?? ''),
+    instagram_url: String(data.instagram_url ?? ''),
     votes_available: 0,
     votes_finished: 0,
   };

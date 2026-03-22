@@ -20,6 +20,8 @@ async function saveParsedEventToCore(parsed_event) {
     location: parsed_event.location,
     time: parsed_event.time,
     food_type: parsed_event.food_type,
+    organization: parsed_event.organization || '',
+    date: parsed_event.date || '',
     lat: DUMMY_LAT,
     lng: DUMMY_LNG,
   };

@@ -1,7 +1,9 @@
 import {
   MapPin,
   Clock,
+  Calendar,
   UtensilsCrossed,
+  ExternalLink,
   X,
   CalendarPlus,
   ThumbsUp,
@@ -51,6 +53,9 @@ export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
             <h2 className="text-xl font-bold text-gray-900 mb-1">
               {event.name}
             </h2>
+            {event.organization && (
+              <p className="text-sm text-gray-500">{event.organization}</p>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -73,6 +78,19 @@ export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
         {/* Details */}
         <div className="p-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
+            {event.date && (
+              <div className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-lg">
+                <Calendar className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                <div>
+                  <p className="text-[10px] text-gray-400 uppercase font-semibold tracking-wide">
+                    Date
+                  </p>
+                  <p className="text-sm font-medium text-gray-800">
+                    {event.date}
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-lg">
               <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <div>
@@ -84,18 +102,39 @@ export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-lg">
-              <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <div>
-                <p className="text-[10px] text-gray-400 uppercase font-semibold tracking-wide">
-                  Location
-                </p>
-                <p className="text-sm font-medium text-gray-800">
-                  {event.location}
-                </p>
-              </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-lg">
+            <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase font-semibold tracking-wide">
+                Location
+              </p>
+              <p className="text-sm font-medium text-gray-800">
+                {event.location}
+              </p>
             </div>
           </div>
+
+          {/* Instagram link */}
+          {event.instagramUrl && (
+            <a
+              href={event.instagramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2.5 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-colors group"
+            >
+              <ExternalLink className="w-4 h-4 text-purple-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-purple-400 uppercase font-semibold tracking-wide">
+                  Source
+                </p>
+                <p className="text-sm font-medium text-purple-700 group-hover:underline truncate">
+                  View original post on Instagram
+                </p>
+              </div>
+            </a>
+          )}
 
           {/* Community voting */}
           <div className="pt-2">
@@ -125,7 +164,9 @@ export function EventDetailModal({ event, onClose }: EventDetailModalProps) {
           {/* Actions */}
           <div className="pt-3 border-t border-gray-100">
             <Button
-              onClick={() => window.open(getGoogleCalendarUrl(event.id), "_blank")}
+              onClick={() =>
+                window.open(getGoogleCalendarUrl(event.id), "_blank")
+              }
               className="w-full bg-orange-600 hover:bg-orange-700 text-white"
             >
               <CalendarPlus className="w-4 h-4 mr-2" />

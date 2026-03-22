@@ -74,7 +74,7 @@ async function createEvent(req, res, next) {
       return res.status(400).json({ error: message });
     }
 
-    const { title, location, lat, lng, time, food_type } = req.body;
+    const { title, location, lat, lng, time, food_type, organization, date, instagram_url } = req.body;
     const event = await eventModel.createEvent({
       title,
       location,
@@ -82,6 +82,9 @@ async function createEvent(req, res, next) {
       lng,
       time,
       food_type,
+      organization: organization || '',
+      date: date || '',
+      instagram_url: instagram_url || '',
     });
     return res.status(201).json(event);
   } catch (err) {
