@@ -2,11 +2,22 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use('/media', express.static(path.resolve(__dirname, '..', 'data', 'images')));
+
+app.get('/', (req, res) => {
+  res.json({
+    service: 'CampusEats API',
+    get: ['/health'],
+    post: ['/parse', '/parse-image'],
+    mount: ['/events'],
+  });
+});
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -31,6 +42,7 @@ app.use((err, req, res, next) => {
   return res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(3000, () => {
-  console.log('Server listening on http://localhost:3000');
+const port = Number(process.env.PORT) || 3000;
+app.listen(port, () => {
+  console.log(`Server listening on http://localhost:${port}`);
 });

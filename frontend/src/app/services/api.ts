@@ -1,3 +1,5 @@
+import { postImageLookup } from "../data/postImageLookup";
+
 const API_BASE = "http://localhost:3000";
 
 /** Raw shape returned by GET /events */
@@ -12,8 +14,15 @@ interface ApiEvent {
   organization: string;
   date: string;
   instagram_url: string;
+  image_url: string;
+  image_local_path: string;
   votes_available: number;
   votes_finished: number;
+}
+
+function extractInstagramPostId(instagramUrl: string): string {
+  const match = instagramUrl?.match(/instagram\.com\/(?:p|reel)\/([^/?#]+)/i);
+  return match?.[1] ?? "";
 }
 
 /** Frontend-friendly Event shape */
@@ -27,10 +36,34 @@ export interface Event {
   foodType: string;
   foodAvailable: boolean;
   instagramUrl: string;
+  imageUrl: string;
   lat: number;
   lng: number;
   votesAvailable: number;
   votesFinished: number;
+}
+
+function resolveEventImage(raw: ApiEvent): string {
+  const localPath = raw.image_local_path?.trim();
+  if (localPath) {
+    const parts = localPath.split("/").filter(Boolean);
+    const fileName = parts[parts.length - 1];
+    if (fileName) {
+      return `${API_BASE}/media/${encodeURIComponent(fileName)}`;
+    }
+  }
+
+  const directImageUrl = raw.image_url?.trim();
+  if (directImageUrl) {
+    return directImageUrl;
+  }
+
+  const postId = extractInstagramPostId(raw.instagram_url || "");
+  if (!postId) {
+    return "";
+  }
+
+  return postImageLookup[postId]?.imageUrl || "";
 }
 
 function mapApiEvent(raw: ApiEvent): Event {
@@ -44,6 +77,7 @@ function mapApiEvent(raw: ApiEvent): Event {
     foodType: raw.food_type,
     foodAvailable: !!raw.food_type && raw.food_type !== '',
     instagramUrl: raw.instagram_url || '',
+    imageUrl: resolveEventImage(raw),
     lat: raw.lat,
     lng: raw.lng,
     votesAvailable: raw.votes_available,

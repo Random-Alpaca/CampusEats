@@ -5,7 +5,28 @@ const {
   FunctionDeclarationSchemaType: S,
 } = require('@google-cloud/vertexai');
 
-const MODEL_ID = 'gemini-1.5-flash';
+/**
+ * Use a current stable model. gemini-1.5-flash-002 (and siblings) were retired Sept 2025 → 404.
+ * Override with GEMINI_MODEL if needed (e.g. gemini-2.0-flash-001).
+ * @see https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions
+ */
+const MODEL_ID = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
+/** Set GEMINI_DEBUG=1 in .env to log Vertex/Gemini errors and bad JSON snippets (server terminal only). */
+function geminiDebugEnabled() {
+  const v = (process.env.GEMINI_DEBUG || '').toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes';
+}
+
+function logGeminiDebug(stage, errOrDetail) {
+  if (!geminiDebugEnabled()) return;
+  if (errOrDetail instanceof Error) {
+    console.error('[gemini]', stage, errOrDetail.message);
+    if (errOrDetail.stack) console.error(errOrDetail.stack);
+  } else {
+    console.error('[gemini]', stage, errOrDetail);
+  }
+}
 
 let generativeModel;
 
@@ -26,15 +47,35 @@ function getGenerativeModel() {
 }
 
 function extractText(response) {
-  const parts = response?.candidates?.[0]?.content?.parts ?? [];
-  const text = parts.map((p) => p.text).filter(Boolean).join('');
+  if (!response || typeof response !== 'object') {
+    throw new Error('Invalid Gemini response');
+  }
+
+  const blockReason = response.promptFeedback?.blockReason;
+  if (blockReason) {
+    throw new Error(`Prompt blocked (blockReason: ${blockReason})`);
+  }
+
+  const candidates = response.candidates;
+  if (!Array.isArray(candidates) || candidates.length === 0) {
+    const extra = response.promptFeedback
+      ? ` promptFeedback=${JSON.stringify(response.promptFeedback)}`
+      : '';
+    throw new Error(`No candidates in Gemini response.${extra}`);
+  }
+
+  const candidate = candidates[0];
+  const parts = candidate?.content?.parts ?? [];
+  const text = parts
+    .map((p) => (p && typeof p.text === 'string' ? p.text : ''))
+    .join('');
   if (text) return text;
 
-  const reason = response?.candidates?.[0]?.finishReason;
+  const fr = candidate?.finishReason;
   throw new Error(
-    reason
-      ? `No text in Gemini response (finishReason: ${reason})`
-      : 'No text in Gemini response'
+    fr
+      ? `No text in Gemini response (finishReason: ${fr})`
+      : 'No text in Gemini response (empty parts)'
   );
 }
 
@@ -47,6 +88,8 @@ function emptyEvent() {
     food_type: '',
     food_available: false,
     organization: '',
+    lat: null,
+    lng: null,
     is_happening_soon: false,
   };
 }
@@ -167,6 +210,9 @@ const EVENT_RESPONSE_SCHEMA = {
     food_type: { type: S.STRING },
     food_available: { type: S.BOOLEAN },
     organization: { type: S.STRING },
+    /** Decimal degrees as strings, e.g. "37.4302"; "" when unknown (matches other string fields). */
+    lat: { type: S.STRING },
+    lng: { type: S.STRING },
   },
   required: [
     'title',
@@ -176,6 +222,8 @@ const EVENT_RESPONSE_SCHEMA = {
     'food_type',
     'food_available',
     'organization',
+    'lat',
+    'lng',
   ],
 };
 
@@ -196,6 +244,7 @@ JSON shape (all keys required):
 - food_type: short label using common categories when possible (e.g. Pizza, Snacks, Drinks, Coffee, Tacos, Donuts), or "".
 - food_available: true if food or drink is mentioned (pizza, snacks, drinks, coffee, donuts, tacos, catering, etc.); false if not mentioned.
 - organization: host club, company, or group if clear, or "".
+- lat, lng: WGS84 decimal degrees for the event building or venue, as strings (e.g. "49.2606", "-123.2460"). Use your knowledge of the named place plus any campus, city, or university mentioned in the caption, bio, or hashtags to pick plausible coordinates for that building. If the place cannot be placed confidently, use "" for both.
 
 Use "" for any string you cannot determine. food_available must be false when no food or drink is mentioned.
 
@@ -212,7 +261,9 @@ Output:
   "date": "",
   "food_type": "Pizza",
   "food_available": true,
-  "organization": ""
+  "organization": "",
+  "lat": "49.2606",
+  "lng": "-123.2460"
 }
 
 ---
@@ -229,9 +280,10 @@ Instructions:
 1. Read all visible text in the image.
 2. Identify event details (what, where, when, who is hosting).
 3. Detect food or drink mentions (pizza, snacks, drinks, coffee, catering, etc.)—set food_available accordingly and food_type to a short label when known.
+4. Infer lat and lng (WGS84 decimal degrees, as strings like "37.4302" and "-122.1721") for the named venue or building when you can place it using visible location cues (university name, city, landmark). Use "" for both if the location is unknown or too vague.
 
 Fields (all keys required; use "" if unknown):
-- title, location, time, date, food_type, food_available (boolean), organization
+- title, location, time, date, food_type, food_available (boolean), organization, lat (string), lng (string)
 
 Example — if the image contains:
 "FREE PIZZA NIGHT 🍕
@@ -247,7 +299,9 @@ Output:
   "date": "",
   "food_type": "Pizza",
   "food_available": true,
-  "organization": "CS Club"
+  "organization": "CS Club",
+  "lat": "",
+  "lng": ""
 }
 
 Return ONLY JSON. No markdown. No explanation.`;
@@ -275,6 +329,67 @@ function guessImageMimeType(contentTypeHeader, url) {
 }
 
 /**
+ * Detect image format from magic bytes (more reliable than Content-Type for CDNs).
+ * @returns {'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | null}
+ */
+function sniffImageMimeType(buf) {
+  if (!buf || buf.length < 12) return null;
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (
+    buf[0] === 0x89 &&
+    buf[1] === 0x50 &&
+    buf[2] === 0x4e &&
+    buf[3] === 0x47
+  ) {
+    return 'image/png';
+  }
+  if (
+    buf[0] === 0x47 &&
+    buf[1] === 0x49 &&
+    buf[2] === 0x46 &&
+    buf[3] === 0x38
+  ) {
+    return 'image/gif';
+  }
+  if (
+    buf.toString('ascii', 0, 4) === 'RIFF' &&
+    buf.toString('ascii', 8, 12) === 'WEBP'
+  ) {
+    return 'image/webp';
+  }
+  return null;
+}
+
+function looksLikeHtmlResponse(buf, contentType) {
+  const ct = (contentType || '').toLowerCase();
+  if (ct.includes('text/html') || ct.includes('application/json')) return true;
+  const head = buf.slice(0, 64).toString('utf8').trimStart();
+  return head.startsWith('<!') || head.toLowerCase().startsWith('<html');
+}
+
+/**
+ * Instagram/Facebook CDNs often block anonymous fetch(); browser-like headers help.
+ */
+function fetchHeadersForImageUrl(imageUrl) {
+  const headers = {
+    Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'User-Agent':
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  };
+  try {
+    const u = new URL(imageUrl);
+    if (/instagram\.com|cdninstagram\.com|fbcdn\.net/i.test(u.hostname)) {
+      headers.Referer = 'https://www.instagram.com/';
+      headers.Origin = 'https://www.instagram.com';
+    }
+  } catch {
+    /* ignore */
+  }
+  return headers;
+}
+
+/**
  * Fetches an image over HTTP(S) for Vertex inlineData.
  * @param {string} imageUrl
  * @returns {Promise<{ mimeType: string, data: string }>}
@@ -298,7 +413,11 @@ async function fetchImageAsInlineData(imageUrl) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 30000);
   try {
-    const res = await fetch(url, { redirect: 'follow', signal: controller.signal });
+    const res = await fetch(url, {
+      redirect: 'follow',
+      signal: controller.signal,
+      headers: fetchHeadersForImageUrl(url),
+    });
     if (!res.ok) {
       throw new Error(`Failed to fetch image: HTTP ${res.status}`);
     }
@@ -306,7 +425,23 @@ async function fetchImageAsInlineData(imageUrl) {
     if (buf.length === 0) {
       throw new Error('Empty image body');
     }
-    const mimeType = guessImageMimeType(res.headers.get('content-type'), url);
+
+    const ct = res.headers.get('content-type');
+    if (looksLikeHtmlResponse(buf, ct)) {
+      throw new Error(
+        'URL returned HTML instead of an image (login page or block). Instagram often blocks server-side downloads—save the image and POST it as multipart field "image", or use a direct image host.'
+      );
+    }
+
+    const sniffed = sniffImageMimeType(buf);
+    const mimeType = sniffed || guessImageMimeType(ct, url);
+
+    if (!sniffed && (!mimeType || !mimeType.startsWith('image/'))) {
+      throw new Error(
+        `Could not determine image type (Content-Type: ${ct || 'none'}).`
+      );
+    }
+
     return { mimeType, data: buf.toString('base64') };
   } finally {
     clearTimeout(timer);
@@ -403,6 +538,35 @@ function toStrictBoolean(value) {
   return false;
 }
 
+/** @param {unknown} value */
+function toCoordinateNumber(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const t = value.trim();
+    if (t === '') return null;
+    const n = parseFloat(t);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+/** @param {unknown} value @returns {number | null} */
+function toLatitude(value) {
+  const n = toCoordinateNumber(value);
+  if (n === null) return null;
+  if (n < -90 || n > 90) return null;
+  return n;
+}
+
+/** @param {unknown} value @returns {number | null} */
+function toLongitude(value) {
+  const n = toCoordinateNumber(value);
+  if (n === null) return null;
+  if (n < -180 || n > 180) return null;
+  return n;
+}
+
 function safeParseJsonObject(text) {
   try {
     const data = JSON.parse(text);
@@ -420,20 +584,194 @@ function normalizeEvent(raw, now = new Date()) {
     return base;
   }
 
+  let foodType = normalizeFoodType(raw.food_type);
+  if (!foodType) {
+    foodType = 'Unspecified';
+  }
+
+  const lat = toLatitude(raw.lat);
+  const lng = toLongitude(raw.lng);
+  const hasPair = lat !== null && lng !== null;
+
   const event = {
     title: toTrimmedString(raw.title),
     location: toTrimmedString(raw.location),
     time: toTrimmedString(raw.time),
     date: toTrimmedString(raw.date),
-    food_type: normalizeFoodType(raw.food_type),
+    food_type: foodType,
     food_available: toStrictBoolean(raw.food_available),
     organization: toTrimmedString(raw.organization),
+    lat: hasPair ? lat : null,
+    lng: hasPair ? lng : null,
   };
 
   return {
     ...event,
     is_happening_soon: computeIsHappeningSoon(event, now),
   };
+}
+
+/** Fields required by Core POST /events (non-empty strings). */
+function isCoreRequiredFieldsEmpty(event) {
+  if (!event || typeof event !== 'object') return true;
+  return (
+    !String(event.title ?? '').trim() ||
+    !String(event.location ?? '').trim() ||
+    !String(event.time ?? '').trim() ||
+    !String(event.food_type ?? '').trim()
+  );
+}
+
+/**
+ * @param {string} trimmedCaption
+ * @param {boolean} useResponseSchema
+ */
+async function generateNormalizedEventFromCaption(trimmedCaption, useResponseSchema) {
+  const model = getGenerativeModel();
+  const generationConfig = useResponseSchema
+    ? {
+        responseMimeType: 'application/json',
+        responseSchema: EVENT_RESPONSE_SCHEMA,
+      }
+    : {
+        responseMimeType: 'application/json',
+        temperature: 0.2,
+      };
+
+  const result = await model.generateContent({
+    contents: [
+      { role: 'user', parts: [{ text: buildParsePrompt(trimmedCaption) }] },
+    ],
+    generationConfig,
+  });
+
+  const responseText = extractText(result.response);
+  const rawJson = stripJsonFence(responseText);
+  const parsed = safeParseJsonObject(rawJson);
+  if (!parsed) {
+    logGeminiDebug(
+      'generateNormalizedEventFromCaption.invalidJson',
+      String(rawJson).slice(0, 500)
+    );
+    return null;
+  }
+  return normalizeEvent(parsed, new Date());
+}
+
+/**
+ * Last-resort Gemini call: no JSON MIME type (some Vertex configs return empty parts with JSON mode).
+ */
+async function generateNormalizedEventFromCaptionPlain(trimmedCaption) {
+  const model = getGenerativeModel();
+  const result = await model.generateContent({
+    contents: [
+      { role: 'user', parts: [{ text: buildParsePrompt(trimmedCaption) }] },
+    ],
+    generationConfig: { temperature: 0.2 },
+  });
+
+  const responseText = extractText(result.response);
+  const rawJson = stripJsonFence(responseText);
+  const parsed = safeParseJsonObject(rawJson);
+  if (!parsed) {
+    logGeminiDebug(
+      'generateNormalizedEventFromCaptionPlain.invalidJson',
+      String(rawJson).slice(0, 500)
+    );
+    return null;
+  }
+  return normalizeEvent(parsed, new Date());
+}
+
+/**
+ * Regex-based extraction when Vertex/Gemini is unavailable or returns nothing.
+ * Handles common patterns: title (before weekday), time (12h), location (after time, before "Hosted by").
+ */
+function heuristicParseCaptionToEvent(trimmedCaption, now = new Date()) {
+  const s = trimmedCaption.replace(/\s+/g, ' ').trim();
+  if (s.length < 8) return null;
+
+  const timeRe = /\b(\d{1,2})(?::(\d{2}))?\s*(AM|PM)\b/i;
+  const tm = s.match(timeRe);
+  if (!tm || tm.index === undefined) return null;
+
+  const middle =
+    tm[2] !== undefined
+      ? `${tm[1]}:${tm[2]} ${tm[3]}`
+      : `${tm[1]} ${tm[3]}`;
+  const tp = parseTimeParts(middle.trim());
+  if (!tp) return null;
+
+  const h24 = tp.h;
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  const ampm = h24 >= 12 ? 'PM' : 'AM';
+  const time = `${h12}:${String(tp.m).padStart(2, '0')} ${ampm}`;
+
+  const timeIdx = tm.index;
+  let afterTime = s.slice(timeIdx + tm[0].length).trim();
+  afterTime = afterTime.replace(/^[.,\s]+/, '');
+  const beforeHosted = afterTime.split(/\bHosted\s+by\b/i)[0];
+  let location = beforeHosted.replace(/\s*\.\s*$/, '').replace(/[.,]+$/, '').trim();
+  if (location.length < 2) return null;
+
+  const dayRe =
+    /\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/i;
+  const dm = s.match(dayRe);
+  let titleEnd = timeIdx;
+  if (dm && dm.index !== undefined && dm.index < timeIdx) {
+    titleEnd = dm.index;
+  }
+  let title = s.slice(0, titleEnd).trim().replace(/[.,\s]+$/g, '');
+  if (title.length < 2) {
+    title = 'Campus Event';
+  }
+  if (title.length > 120) {
+    title = `${title.slice(0, 117)}...`;
+  }
+
+  let food_type = 'Unspecified';
+  let food_available = false;
+  if (/\bpizza\b/i.test(s)) {
+    food_type = 'Pizza';
+    food_available = true;
+  } else if (/\b(taco|tacos)\b/i.test(s)) {
+    food_type = 'Tacos';
+    food_available = true;
+  } else if (/\b(snack|snacks)\b/i.test(s)) {
+    food_type = 'Snacks';
+    food_available = true;
+  } else if (/\bcoffee\b/i.test(s)) {
+    food_type = 'Coffee';
+    food_available = true;
+  } else if (/\bdrinks?\b/i.test(s)) {
+    food_type = 'Drinks';
+    food_available = true;
+  } else if (
+    /\b(free\s+food|catering|donuts?|doughnuts?|lunch|dinner|brunch|bbq|barbecue)\b/i.test(
+      s
+    )
+  ) {
+    food_available = true;
+  }
+
+  let organization = '';
+  const hm = s.match(/\bHosted\s+by\s+([^.,]+)/i);
+  if (hm) organization = hm[1].trim();
+
+  return normalizeEvent(
+    {
+      title,
+      location,
+      time,
+      date: '',
+      food_type,
+      food_available,
+      organization,
+      lat: '',
+      lng: '',
+    },
+    now
+  );
 }
 
 /**
@@ -463,6 +801,8 @@ async function generateText(prompt) {
  *   food_type: string,
  *   food_available: boolean,
  *   organization: string,
+ *   lat: number | null,
+ *   lng: number | null,
  *   is_happening_soon: boolean
  * }>}
  */
@@ -474,30 +814,48 @@ async function parseEvent(text) {
   const fallback = emptyEvent();
   const trimmedCaption = text.trim();
 
-  let responseText;
+  let event = null;
   try {
-    const model = getGenerativeModel();
-    const result = await model.generateContent({
-      contents: [
-        { role: 'user', parts: [{ text: buildParsePrompt(trimmedCaption) }] },
-      ],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: EVENT_RESPONSE_SCHEMA,
-      },
-    });
-    responseText = extractText(result.response);
-  } catch {
+    event = await generateNormalizedEventFromCaption(trimmedCaption, true);
+  } catch (err) {
+    logGeminiDebug('parseEvent.generateContent.schema', err);
+  }
+
+  if (isCoreRequiredFieldsEmpty(event)) {
+    try {
+      const second = await generateNormalizedEventFromCaption(
+        trimmedCaption,
+        false
+      );
+      if (second) event = second;
+    } catch (err) {
+      logGeminiDebug('parseEvent.generateContent.jsonFallback', err);
+    }
+  }
+
+  if (isCoreRequiredFieldsEmpty(event)) {
+    try {
+      const third = await generateNormalizedEventFromCaptionPlain(
+        trimmedCaption
+      );
+      if (third) event = third;
+    } catch (err) {
+      logGeminiDebug('parseEvent.generateContent.plain', err);
+    }
+  }
+
+  if (isCoreRequiredFieldsEmpty(event)) {
+    const h = heuristicParseCaptionToEvent(trimmedCaption, new Date());
+    if (h && !isCoreRequiredFieldsEmpty(h)) {
+      event = h;
+    }
+  }
+
+  if (!event || isCoreRequiredFieldsEmpty(event)) {
     return fallback;
   }
 
-  const rawJson = stripJsonFence(responseText);
-  const parsed = safeParseJsonObject(rawJson);
-  if (!parsed) {
-    return fallback;
-  }
-
-  return normalizeEvent(parsed, new Date());
+  return event;
 }
 
 /**
@@ -508,42 +866,75 @@ async function parseEvent(text) {
  *   date: string,
  *   food_type: string,
  *   food_available: boolean,
- *   organization: string
+ *   organization: string,
+ *   lat: number | null,
+ *   lng: number | null
  * }>}
  */
 async function parseEventFromInlineData(mimeType, base64Data) {
   const fallback = emptyEventImageFields();
+  const userParts = [
+    { text: PARSE_EVENT_FROM_IMAGE_PROMPT },
+    { inlineData: { mimeType, data: base64Data } },
+  ];
 
-  let responseText;
-  try {
+  async function tryVisionParse(generationConfig) {
     const model = getGenerativeModel();
     const result = await model.generateContent({
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: PARSE_EVENT_FROM_IMAGE_PROMPT },
-            { inlineData: { mimeType: mimeType, data: base64Data } },
-          ],
-        },
-      ],
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: EVENT_RESPONSE_SCHEMA,
-      },
+      contents: [{ role: 'user', parts: userParts }],
+      generationConfig,
     });
-    responseText = extractText(result.response);
-  } catch {
-    return fallback;
+    const responseText = extractText(result.response);
+    const rawJson = stripJsonFence(responseText);
+    const parsed = safeParseJsonObject(rawJson);
+    if (!parsed) {
+      logGeminiDebug(
+        'parseEventFromInlineData.invalidJson',
+        String(rawJson).slice(0, 500)
+      );
+      return null;
+    }
+    const { is_happening_soon: _drop, ...event } = normalizeEvent(
+      parsed,
+      new Date()
+    );
+    return event;
   }
 
-  const rawJson = stripJsonFence(responseText);
-  const parsed = safeParseJsonObject(rawJson);
-  if (!parsed) {
-    return fallback;
+  let event = null;
+  try {
+    event = await tryVisionParse({
+      responseMimeType: 'application/json',
+      responseSchema: EVENT_RESPONSE_SCHEMA,
+    });
+  } catch (err) {
+    logGeminiDebug('parseEventFromInlineData.schema', err);
   }
 
-  const { is_happening_soon: _drop, ...event } = normalizeEvent(parsed, new Date());
+  if (isCoreRequiredFieldsEmpty(event)) {
+    try {
+      const second = await tryVisionParse({
+        responseMimeType: 'application/json',
+        temperature: 0.2,
+      });
+      if (second) event = second;
+    } catch (err) {
+      logGeminiDebug('parseEventFromInlineData.jsonOnly', err);
+    }
+  }
+
+  if (isCoreRequiredFieldsEmpty(event)) {
+    try {
+      const third = await tryVisionParse({ temperature: 0.2 });
+      if (third) event = third;
+    } catch (err) {
+      logGeminiDebug('parseEventFromInlineData.plain', err);
+    }
+  }
+
+  if (!event || isCoreRequiredFieldsEmpty(event)) {
+    return fallback;
+  }
   return event;
 }
 
@@ -554,15 +945,15 @@ async function parseEventFromInlineData(mimeType, base64Data) {
  * @param {string} imageUrl HTTP(S) URL to an image (fetched server-side and sent as inline data).
  */
 async function parseEventFromImage(imageUrl) {
-  const fallback = emptyEventImageFields();
-
   let inline;
   try {
     inline = await fetchImageAsInlineData(imageUrl);
-  } catch {
-    return fallback;
+  } catch (err) {
+    logGeminiDebug('parseEventFromImage.fetchImage', err);
+    const e = err instanceof Error ? err : new Error(String(err));
+    e.code = 'IMAGE_FETCH_FAILED';
+    throw e;
   }
-
   return parseEventFromInlineData(inline.mimeType, inline.data);
 }
 
@@ -581,11 +972,15 @@ function resolveUploadedImageMime(mimetype, originalname) {
     if (m === 'image/png' || m === 'image/x-png') {
       return 'image/png';
     }
+    if (m === 'image/webp') {
+      return 'image/webp';
+    }
   }
   if (originalname && typeof originalname === 'string') {
     const lower = originalname.toLowerCase();
     if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
     if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
   }
   return null;
 }
@@ -593,14 +988,18 @@ function resolveUploadedImageMime(mimetype, originalname) {
 /**
  * Parse an uploaded JPEG/PNG buffer (inline Gemini image).
  * @param {Buffer} buffer
- * @param {'image/jpeg' | 'image/png'} mimeType
+ * @param {'image/jpeg' | 'image/png' | 'image/webp'} mimeType
  */
 async function parseEventFromImageBuffer(buffer, mimeType) {
   const fallback = emptyEventImageFields();
   if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
     return fallback;
   }
-  if (mimeType !== 'image/jpeg' && mimeType !== 'image/png') {
+  if (
+    mimeType !== 'image/jpeg' &&
+    mimeType !== 'image/png' &&
+    mimeType !== 'image/webp'
+  ) {
     return fallback;
   }
   return parseEventFromInlineData(mimeType, buffer.toString('base64'));
