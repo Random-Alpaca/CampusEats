@@ -7,16 +7,19 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { Layout } from "../components/Layout";
 
 const clubs = [
-  { id: 1, name: "Computer Science Club", abbr: "CS", color: "bg-orange-400" },
-  { id: 2, name: "Business Association", abbr: "BA", color: "bg-amber-400" },
-  { id: 3, name: "Engineering Society", abbr: "ES", color: "bg-yellow-400" },
-  { id: 4, name: "Art Collective", abbr: "AC", color: "bg-rose-400" },
-  { id: 5, name: "Sports Club", abbr: "SC", color: "bg-red-400" },
-  { id: 6, name: "Music Society", abbr: "MS", color: "bg-orange-300" },
-  { id: 7, name: "Drama Club", abbr: "DC", color: "bg-amber-300" },
-  { id: 8, name: "Environmental Club", abbr: "EC", color: "bg-lime-400" },
-  { id: 9, name: "Debate Team", abbr: "DT", color: "bg-orange-500" },
-  { id: 10, name: "Photography Club", abbr: "PC", color: "bg-yellow-500" },
+  { id: 1, name: "BUCS", img: "/images/HomePage/icons/BUCS.png" },
+  { id: 2, name: "UBC BizTech", img: "/images/HomePage/icons/biztech.jpg" },
+  { id: 3, name: "CUS", img: "/images/HomePage/icons/cus.png" },
+  { id: 4, name: "HEWE", img: "/images/HomePage/icons/hewe.jpg" },
+  { id: 5, name: "Marketing Association", img: "/images/HomePage/icons/ma.jpg" },
+  { id: 6, name: "UBC Summit", img: "/images/HomePage/icons/summit.png" },
+  { id: 7, name: "Young Women in Business", img: "/images/HomePage/icons/ywib.jpg" },
+  { id: 8, name: "nwPlus", img: "/images/HomePage/icons/nwPlus.png" },
+  { id: 9, name: "POITS", img: "/images/HomePage/icons/poits.png" },
+  { id: 10, name: "SFU ACE", img: "/images/HomePage/icons/SFU ACE.png" },
+  { id: 11, name: "SFU ASA", img: "/images/HomePage/icons/SFU ASA.png" },
+  { id: 12, name: "SFU Enactus", img: "/images/HomePage/icons/SFU enactus.png" },
+  { id: 13, name: "Commerce Night", img: "/images/HomePage/icons/commerce night.jpg" },
 ];
 
 // Floating food emojis for the hero
@@ -86,7 +89,7 @@ export function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              Discover events with free pizza, snacks, and meals happening right now across campus. Save money, meet people, eat well! 🎉
+              Discover events with free pizza, snacks, and meals happening right now across campus. Save money, meet people, eat well!
             </motion.p>
 
             <motion.div
@@ -103,27 +106,12 @@ export function Home() {
               </Link>
               <Link to="/map">
                 <Button size="lg" variant="outline" className="rounded-2xl border-orange-200 text-orange-600 hover:bg-orange-50 font-semibold px-6 py-3 text-base">
-                  🗺️ View Map
+                  View Map
                 </Button>
               </Link>
             </motion.div>
 
-            {/* Social proof */}
-            <motion.div
-              className="flex items-center gap-3 mt-8 justify-center lg:justify-start"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-            >
-              <div className="flex -space-x-2">
-                {["🧑‍🎓", "👩‍🎓", "👨‍🎓", "🧑‍💻"].map((emoji, i) => (
-                  <div key={i} className="w-8 h-8 rounded-full bg-orange-100 border-2 border-white flex items-center justify-center text-sm">
-                    {emoji}
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-gray-500"><span className="font-semibold text-gray-700">2,400+</span> students saving money weekly</p>
-            </motion.div>
+
           </div>
 
           {/* Hero image card */}
@@ -174,11 +162,11 @@ export function Home() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-white text-center">
             {[
-              { value: "340+", label: "Events this month", icon: "📅" },
-              { value: "48", label: "Campus clubs tracked", icon: "🏫" },
-              { value: "2.4k", label: "Happy students", icon: "😋" },
-              { value: "$0", label: "Cost to you", icon: "💸" },
-              { value: "1.7 tons", label: "Food waste reduced monthly", icon: "♻️" },
+              { value: "340+", label: "Events this month", img: "/images/HomePage/11.png" },
+              { value: "48", label: "Campus clubs tracked", img: "/images/HomePage/12.png" },
+              { value: "2.4k", label: "Happy students", img: "/images/HomePage/10.png" },
+              { value: "$0", label: "Cost to you", img: "/images/HomePage/13.png" },
+              { value: "1.7 tons", label: "Food waste reduced monthly", img: "/images/HomePage/14.png" },
             ].map((stat, i) => (
               <motion.div
                 key={i}
@@ -186,8 +174,11 @@ export function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
+                className="flex flex-col items-center justify-center"
               >
-                <div className="text-2xl mb-1">{stat.icon}</div>
+                <div className="w-20 h-20 mb-3 transform hover:scale-110 transition-transform duration-300">
+                  <img src={stat.img} alt={stat.label} className="w-full h-full object-contain" />
+                </div>
                 <div className="text-2xl font-black">{stat.value}</div>
                 <div className="text-orange-100 text-sm">{stat.label}</div>
               </motion.div>
@@ -213,10 +204,10 @@ export function Home() {
                   transition={{ type: "spring", stiffness: 300 }}
                 >
                   <div className="flex flex-col items-center gap-2 w-24">
-                    <div className={`w-14 h-14 ${club.color} rounded-2xl flex items-center justify-center text-white shadow-md font-black text-sm`}>
-                      {club.abbr}
+                    <div className="w-16 h-16 rounded-2xl shadow-md overflow-hidden bg-white flex items-center justify-center border border-gray-100">
+                      <img src={club.img} alt={club.name} className="w-full h-full object-cover" />
                     </div>
-                    <p className="text-xs text-center text-gray-500 line-clamp-2 leading-tight">
+                    <p className="text-xs text-center text-gray-500 line-clamp-2 leading-tight font-medium">
                       {club.name}
                     </p>
                   </div>
@@ -332,7 +323,6 @@ export function Home() {
         <div className="absolute bottom-[-60px] left-[-30px] w-80 h-80 rounded-full bg-white/5" />
 
         <div className="relative max-w-3xl mx-auto px-4 text-center text-white">
-          <div className="text-5xl mb-4">🎉</div>
           <h2 className="text-4xl font-black mb-4">Ready to eat for free?</h2>
           <p className="text-lg mb-8 text-orange-100">
             Join thousands of students finding free food events every single week
