@@ -1,25 +1,16 @@
 /**
- * Import events from data/scraped_posts.json using parseEvent (Gemini).
+ * Import events from data/scraped_posts.json using Gemini on captions only.
  *
- * Caption first; if core fields are missing, tries local image then optional image URL.
- * For caption-only imports (no images), use: scripts/import-scraped-posts-captions-only.js
+ * Does not read local images or image URLs—faster and cheaper than import-scraped-posts.js.
+ * Skips posts with no caption (image-only posts are ignored).
  *
- * Writes to Firestore by default (same as npm run seed:events). Requires .env with
- * GOOGLE_APPLICATION_CREDENTIALS + PROJECT_ID + LOCATION. No API server needed.
+ * Same manifest (data/imported_post_ids.json), --limit, --school, --use-api, etc. as the main importer.
  *
- * Use --use-api (or IMPORT_USE_API=1) to POST to the Express server instead.
+ * Usage (e.g. next 80 after the first batch, skipping IDs already in the manifest):
+ *   node scripts/import-scraped-posts-captions-only.js --limit=80
+ *   node scripts/import-scraped-posts-captions-only.js --dry-run --limit=5
  *
- * Usage:
- *   node scripts/import-scraped-posts.js --dry-run --limit=5
- *   node scripts/import-scraped-posts.js --school=ubc --require-food
- *
- * Env:
- *   IMPORT_USE_API=1  use HTTP POST /events instead of Firestore (start server first)
- *   API_BASE_URL      (default http://127.0.0.1:3000) when using IMPORT_USE_API
- *   IMPORT_LAT        (default UBC Vancouver ~49.26)
- *   IMPORT_LNG        (default ~-123.25)
- *   IMPORT_DELAY_MS   delay between Gemini calls (default 400)
- *   IMPORT_SKIP_IMAGE_URL=1  do not try image_url after local file (faster; avoids CDN blocks)
+ * Env: same as import-scraped-posts.js (IMPORT_USE_API, IMPORT_DELAY_MS, …)
  */
 require('dotenv').config();
 
@@ -28,7 +19,6 @@ const {
   SCRAPED_PATH,
   MANIFEST_PATH,
   DELAY_MS,
-  SKIP_IMAGE_URL,
   parseArgs,
   extractCaptionBody,
   hasRequiredFieldsForCore,
@@ -36,78 +26,10 @@ const {
   loadJsonSafe,
   saveManifest,
   sleep,
-  resolveLocalImagePath,
   assertApiReachable,
   saveEventToDatabase,
 } = require('./lib/scraped-import-shared');
-const {
-  parseEvent,
-  parseEventFromImage,
-  parseEventFromImageBuffer,
-  resolveUploadedImageMime,
-} = require('../services/gemini');
-
-/**
- * Caption first; if core fields missing, try local image then (optionally) image URL.
- * @returns {{ parsed: object, imageFallback: 'none' | 'local' | 'url' }}
- */
-async function parseCaptionThenImage(text, post, label) {
-  let parsed;
-  try {
-    parsed = await parseEvent(text);
-  } catch (e) {
-    throw e;
-  }
-
-  if (hasRequiredFieldsForCore(parsed)) {
-    return { parsed, imageFallback: 'none' };
-  }
-
-  await sleep(DELAY_MS);
-
-  const localPath = resolveLocalImagePath(post.image_local_path);
-  if (localPath && fs.existsSync(localPath)) {
-    const mime = resolveUploadedImageMime(undefined, localPath);
-    if (mime) {
-      try {
-        const buf = fs.readFileSync(localPath);
-        const fromImg = await parseEventFromImageBuffer(buf, mime);
-        if (hasRequiredFieldsForCore(fromImg)) {
-          console.log(label, 'parse: used local image (caption incomplete)');
-          return { parsed: fromImg, imageFallback: 'local' };
-        }
-      } catch (e) {
-        console.error(label, 'parseEventFromImageBuffer:', e.message || e);
-      }
-    }
-  }
-
-  await sleep(DELAY_MS);
-
-  if (!SKIP_IMAGE_URL && post.image_url && typeof post.image_url === 'string') {
-    const u = post.image_url.trim();
-    if (u) {
-      try {
-        const fromUrl = await parseEventFromImage(u);
-        if (hasRequiredFieldsForCore(fromUrl)) {
-          console.log(label, 'parse: used image URL (caption incomplete)');
-          return { parsed: fromUrl, imageFallback: 'url' };
-        }
-      } catch (e) {
-        if (e && e.code === 'IMAGE_FETCH_FAILED') {
-          console.log(
-            label,
-            'image URL not fetchable (CDN); ensure image_local_path exists or download manually'
-          );
-        } else {
-          console.error(label, 'parseEventFromImage:', e.message || e);
-        }
-      }
-    }
-  }
-
-  return { parsed, imageFallback: 'none' };
-}
+const { parseEvent } = require('../services/gemini');
 
 async function main() {
   const { dryRun, force, requireFood, limit, school, useApi } = parseArgs(
@@ -119,6 +41,10 @@ async function main() {
   } else if (!dryRun && !useApi) {
     console.log('Import mode: Firestore (direct). Ensure GOOGLE_APPLICATION_CREDENTIALS is set.\n');
   }
+
+  console.log(
+    'Captions-only import (no image fallback). Posts without a caption are skipped.\n'
+  );
 
   if (!fs.existsSync(SCRAPED_PATH)) {
     console.error('Missing', SCRAPED_PATH);
@@ -149,9 +75,9 @@ async function main() {
   let skippedDup = 0;
   let skippedEmpty = 0;
   let skippedFood = 0;
+  let skippedNoCaption = 0;
   let parseErrors = 0;
   let postErrors = 0;
-  let imageFallbackUsed = 0;
 
   outer: for (const [schoolKey, clubs] of schools) {
     if (!clubs || typeof clubs !== 'object') continue;
@@ -165,10 +91,11 @@ async function main() {
         const caption = post.caption;
         const hasCaption =
           typeof caption === 'string' && caption.trim() !== '';
-        const hasImage =
-          (post.image_local_path && String(post.image_local_path).trim()) ||
-          (post.image_url && String(post.image_url).trim());
-        if (!hasCaption && !hasImage) continue;
+
+        if (!hasCaption) {
+          skippedNoCaption += 1;
+          continue;
+        }
 
         if (!force && importedSet.has(postId)) {
           skippedDup += 1;
@@ -179,25 +106,18 @@ async function main() {
           break outer;
         }
 
-        const text = hasCaption ? extractCaptionBody(caption) : '';
+        const text = extractCaptionBody(caption);
         const label = `[${schoolKey}/${clubHandle}/${postId}]`;
 
         parseAttempts += 1;
         let parsed;
-        let imageFallback = 'none';
         try {
-          const r = await parseCaptionThenImage(text, post, label);
-          parsed = r.parsed;
-          imageFallback = r.imageFallback;
+          parsed = await parseEvent(text);
         } catch (e) {
           console.error(label, 'parse error:', e.message || e);
           parseErrors += 1;
           await sleep(DELAY_MS);
           continue;
-        }
-
-        if (imageFallback !== 'none') {
-          imageFallbackUsed += 1;
         }
 
         await sleep(DELAY_MS);
@@ -213,10 +133,7 @@ async function main() {
 
         if (!hasRequiredFieldsForCore(parsed)) {
           skippedEmpty += 1;
-          console.log(
-            label,
-            'skip (incomplete parse from caption and image)'
-          );
+          console.log(label, 'skip (incomplete parse from caption only)');
           continue;
         }
 
@@ -269,18 +186,17 @@ async function main() {
 
   console.log('\n---');
   console.log(
-    `import-scraped-posts (caption + image fallback) — ` +
+    `import-scraped-posts-captions-only — ` +
       `parse attempts (--limit applies here): ${parseAttempts}, created: ${created}, ` +
-      `image fallback used: ${imageFallbackUsed}, ` +
-      `skipped duplicate: ${skippedDup}, skipped incomplete: ${skippedEmpty}, ` +
-      `skipped no-food: ${skippedFood}, parse errors: ${parseErrors}, POST errors: ${postErrors}` +
+      `skipped duplicate: ${skippedDup}, skipped no caption: ${skippedNoCaption}, ` +
+      `skipped incomplete: ${skippedEmpty}, skipped no-food: ${skippedFood}, ` +
+      `parse errors: ${parseErrors}, POST errors: ${postErrors}` +
       (dryRun ? ' (dry-run)' : '')
   );
 
   if (!dryRun && created === 0 && skippedEmpty > 0) {
     console.log(
-      '\nNo rows saved: Gemini must return title, location, time, and food_type. ' +
-        'Ensure captions or data/images/* local files exist for image fallback.'
+      '\nNo rows saved: Gemini must return title, location, time, and food_type from the caption.'
     );
   }
 }
