@@ -3,7 +3,7 @@ CampusEats helps students discover nearby campus events that are offering free f
 
 Video Demo (click on the image):
 
-[![Watch the video](https://img.youtube.com/vi/zBExytfmT8k/hqdefault.jpg)](https://www.youtube.com/embed/zBExytfmT8k)
+[![Watch the video](https://img.youtube.com/vi/zBExyt/hqdefault.jpg)](https://www.youtube.com/embed/zBExytfmT8k)
 
 This repository contains both the backend server and the frontend prototype for CampusEats (also referenced as SnackZone).
 
