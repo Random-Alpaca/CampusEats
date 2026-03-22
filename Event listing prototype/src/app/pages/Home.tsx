@@ -70,8 +70,7 @@ export function Home() {
             </motion.div>
 
             <motion.h1
-              className="text-5xl lg:text-6xl font-black tracking-tight text-gray-900 mb-5 leading-[1.1]"
-              style={{ fontFamily: "'Fredoka One', 'Nunito', cursive, sans-serif" }}
+              className="text-5xl lg:text-6xl font-black tracking-tight text-gray-900 mb-5 leading-[1.1] font-display"
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
@@ -348,8 +347,6 @@ export function Home() {
       </section>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
-
         @keyframes scroll {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
