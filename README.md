@@ -1,4 +1,9 @@
 # CampusEats (SnackZone)
+CampusEats helps students discover nearby campus events that are offering free food, all visualized on an interactive map. Users can open the app, see pins dropped across campus for active or upcoming events, and tap into details like what food is being served, where the event is, and when it starts. Instead of relying on word-of-mouth or buried Facebook posts, CampusEats surfaces this information in real time so students can actually show up.
+
+Video Demo (click on the image):
+
+[![Watch the video](https://img.youtube.com/vi/zBExytfmT8k/hqdefault.jpg)](https://www.youtube.com/embed/zBExytfmT8k)
 
 This repository contains both the backend server and the frontend prototype for CampusEats (also referenced as SnackZone).
 
