@@ -1,4 +1,5 @@
 const eventModel = require('../models/event');
+const { getEventMedia } = require('../services/eventMedia');
 const ics = require('ics');
 
 const REQUIRED_EVENT_FIELDS = [
@@ -11,6 +12,14 @@ const REQUIRED_EVENT_FIELDS = [
 ];
 
 const VOTE_TYPES = new Set(['available', 'finished']);
+
+function attachEventMedia(event) {
+  if (!event || typeof event !== 'object') return event;
+  return {
+    ...event,
+    ...getEventMedia(event),
+  };
+}
 
 function validateCreateEventBody(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -61,7 +70,7 @@ function validateVoteBody(body) {
 async function listEvents(req, res, next) {
   try {
     const events = await eventModel.getAllEvents();
-    return res.status(200).json(events);
+    return res.status(200).json(events.map(attachEventMedia));
   } catch (err) {
     return next(err);
   }
@@ -74,7 +83,19 @@ async function createEvent(req, res, next) {
       return res.status(400).json({ error: message });
     }
 
-    const { title, location, lat, lng, time, food_type, organization, date, instagram_url } = req.body;
+    const {
+      title,
+      location,
+      lat,
+      lng,
+      time,
+      food_type,
+      organization,
+      date,
+      instagram_url,
+      image_url,
+      image_local_path,
+    } = req.body;
     const event = await eventModel.createEvent({
       title,
       location,
@@ -85,8 +106,10 @@ async function createEvent(req, res, next) {
       organization: organization || '',
       date: date || '',
       instagram_url: instagram_url || '',
+      image_url: image_url || '',
+      image_local_path: image_local_path || '',
     });
-    return res.status(201).json(event);
+    return res.status(201).json(attachEventMedia(event));
   } catch (err) {
     return next(err);
   }
@@ -113,7 +136,7 @@ async function vote(req, res, next) {
 
     await eventModel.voteEvent(id, type);
     const updated = await eventModel.getEventById(id);
-    return res.status(200).json(updated);
+    return res.status(200).json(attachEventMedia(updated));
   } catch (err) {
     return next(err);
   }

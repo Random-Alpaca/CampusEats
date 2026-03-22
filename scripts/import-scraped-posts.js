@@ -232,6 +232,9 @@ async function main() {
           lat,
           lng,
           instagram_url: instagramUrl,
+          image_url: typeof post.image_url === 'string' ? post.image_url : '',
+          image_local_path:
+            typeof post.image_local_path === 'string' ? post.image_local_path : '',
         };
 
         if (dryRun) {
