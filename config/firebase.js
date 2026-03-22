@@ -6,35 +6,45 @@
  *   2. Save the file as: config/firebase-service-account.json (path is gitignored).
  *   3. Set GOOGLE_APPLICATION_CREDENTIALS to that path (see .env.example).
  *
- * In production, set the same env var to the file path mounted as a secret, or use
- * workload identity / default credentials on GCP instead of a JSON file.
+ * In production (e.g. Vercel), set FIREBASE_SERVICE_ACCOUNT_JSON to the full
+ * JSON string contents of the service account file instead of a file path.
  */
 const path = require('path');
 const fs = require('fs');
 const admin = require('firebase-admin');
 
-const keyPath =
-  process.env.GOOGLE_APPLICATION_CREDENTIALS ||
-  process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
-
-if (!keyPath) {
-  throw new Error(
-    'Set GOOGLE_APPLICATION_CREDENTIALS or FIREBASE_SERVICE_ACCOUNT_PATH to your Firebase service account JSON file path (see comments in config/firebase.js and .env.example).'
-  );
-}
-
-const resolvedPath = path.isAbsolute(keyPath)
-  ? keyPath
-  : path.resolve(process.cwd(), keyPath);
-
-if (!fs.existsSync(resolvedPath)) {
-  throw new Error(`Service account file not found: ${resolvedPath}`);
-}
-
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(resolvedPath),
-  });
+  // Option 1: JSON string in env var (Vercel / serverless)
+  const jsonEnv = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if (jsonEnv) {
+    const serviceAccount = JSON.parse(jsonEnv);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+  } else {
+    // Option 2: File path (local development)
+    const keyPath =
+      process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+      process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+
+    if (!keyPath) {
+      throw new Error(
+        'Set FIREBASE_SERVICE_ACCOUNT_JSON (for Vercel) or GOOGLE_APPLICATION_CREDENTIALS (for local dev) — see .env.example.'
+      );
+    }
+
+    const resolvedPath = path.isAbsolute(keyPath)
+      ? keyPath
+      : path.resolve(process.cwd(), keyPath);
+
+    if (!fs.existsSync(resolvedPath)) {
+      throw new Error(`Service account file not found: ${resolvedPath}`);
+    }
+
+    admin.initializeApp({
+      credential: admin.credential.cert(resolvedPath),
+    });
+  }
 }
 
 const db = admin.firestore();

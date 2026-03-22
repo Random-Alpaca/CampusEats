@@ -74,3 +74,33 @@ npm run dev
 ```
 
 This will run Vite and start the frontend application locally. The terminal output will provide the exact localhost URL (typically `http://localhost:5173`) where you can view it in your browser.
+
+---
+
+## Deploy to Vercel
+
+This project is configured for one-click deployment to [Vercel](https://vercel.com). The backend runs as serverless functions under `/api/*` and the frontend is built as a static Vite app.
+
+### 1. Push to GitHub
+
+Make sure your code is pushed to a GitHub repo (branch `deploy/vercel` or `main`).
+
+### 2. Import into Vercel
+
+1. Go to [vercel.com/new](https://vercel.com/new) and import your GitHub repo.
+2. Vercel will auto-detect the `vercel.json` configuration.
+
+### 3. Set Environment Variables
+
+In the Vercel project dashboard → **Settings → Environment Variables**, add:
+
+| Variable | Value |
+|----------|-------|
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Full JSON contents of your Firebase service account key |
+| `PROJECT_ID` | Your GCP project ID |
+| `LOCATION` | Your Vertex AI region (e.g. `us-central1`) |
+| `VITE_MAPBOX_TOKEN` | Your Mapbox access token |
+
+### 4. Deploy
+
+Click **Deploy** — Vercel will build the frontend and set up the serverless API automatically.
