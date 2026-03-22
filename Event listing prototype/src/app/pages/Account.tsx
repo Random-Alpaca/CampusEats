@@ -1,4 +1,19 @@
-import { User, Bell, Heart, Settings, ChevronRight, Star } from "lucide-react";
+import {
+  User,
+  Bell,
+  Heart,
+  Settings,
+  ChevronRight,
+  Star,
+  Pizza,
+  UtensilsCrossed,
+  Calendar,
+  DollarSign,
+  Lock,
+  Shield,
+  LogOut,
+  Pencil,
+} from "lucide-react";
 import { Layout } from "../components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -6,15 +21,15 @@ import { Switch } from "../components/ui/switch";
 import { Label } from "../components/ui/label";
 
 const FAVORITE_CLUBS = [
-  { name: "Computer Science Club", emoji: "💻", color: "bg-blue-100 text-blue-700 border-blue-200" },
-  { name: "Business Association", emoji: "📊", color: "bg-purple-100 text-purple-700 border-purple-200" },
-  { name: "Engineering Society", emoji: "⚙️", color: "bg-gray-100 text-gray-700 border-gray-200" },
+  { name: "Computer Science Club", icon: Settings, color: "bg-blue-50 text-blue-700 border-blue-100" },
+  { name: "Business Association", icon: Star, color: "bg-purple-50 text-purple-700 border-purple-100" },
+  { name: "Engineering Society", icon: Settings, color: "bg-gray-50 text-gray-700 border-gray-100" },
 ];
 
 const NOTIFICATION_PREFS = [
   {
     id: "pizza",
-    emoji: "🍕",
+    icon: Pizza,
     bg: "bg-orange-50",
     title: "Pizza Events",
     desc: "Get notified the moment free pizza appears",
@@ -22,7 +37,7 @@ const NOTIFICATION_PREFS = [
   },
   {
     id: "all-food",
-    emoji: "🍽️",
+    icon: UtensilsCrossed,
     bg: "bg-amber-50",
     title: "All Food Events",
     desc: "Any campus event offering free food",
@@ -30,8 +45,8 @@ const NOTIFICATION_PREFS = [
   },
   {
     id: "other-events",
-    emoji: "📅",
-    bg: "bg-blue-50",
+    icon: Calendar,
+    bg: "bg-gray-50",
     title: "Other Events",
     desc: "General campus events without food",
     defaultChecked: false,
@@ -41,84 +56,88 @@ const NOTIFICATION_PREFS = [
 export function Account() {
   return (
     <Layout>
-      <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 min-h-screen">
+      <div className="bg-gray-50 min-h-screen">
         <div className="max-w-2xl mx-auto px-4 py-10">
-
           {/* Profile Card */}
-          <div className="relative mb-8">
-            {/* Decorative background blob */}
-            <div className="absolute -top-4 -right-4 w-32 h-32 bg-orange-200/30 rounded-full blur-2xl pointer-events-none" />
-
-            <Card className="rounded-3xl border-0 shadow-xl shadow-orange-100 overflow-visible bg-white">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-5">
-                  {/* Avatar */}
-                  <div className="relative flex-shrink-0">
-                    <div className="w-20 h-20 bg-gradient-to-br from-orange-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200">
-                      <span className="text-3xl">🧑‍🎓</span>
-                    </div>
-                    {/* Online dot */}
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-2 border-white" />
+          <Card className="mb-5 rounded-xl border border-gray-200 shadow-sm bg-white">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-5">
+                {/* Avatar */}
+                <div className="relative flex-shrink-0">
+                  <div className="w-16 h-16 bg-orange-600 rounded-xl flex items-center justify-center">
+                    <User className="w-8 h-8 text-white" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-black text-gray-900 mb-0.5">Student Account</h2>
-                    <p className="text-gray-400 text-sm mb-2">student@university.edu</p>
-                    <div className="flex items-center gap-1.5">
-                      <div className="bg-orange-100 text-orange-600 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-current" />
-                        Free Food Hunter
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-2xl font-black text-orange-500">47</div>
-                    <div className="text-xs text-gray-400">events attended</div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-bold text-gray-900 mb-0.5">
+                    Student Account
+                  </h2>
+                  <p className="text-gray-500 text-sm mb-1.5">
+                    student@university.edu
+                  </p>
+                  <div className="inline-flex items-center gap-1 bg-orange-50 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full border border-orange-100">
+                    <Star className="w-3 h-3" />
+                    Free Food Hunter
                   </div>
                 </div>
-
-                {/* Quick stats */}
-                <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-gray-100">
-                  {[
-                    { value: "$280", label: "saved", emoji: "💰" },
-                    { value: "12", label: "clubs followed", emoji: "❤️" },
-                    { value: "3", label: "this week", emoji: "🗓️" },
-                  ].map((stat, i) => (
-                    <div key={i} className="text-center bg-gray-50 rounded-2xl p-3">
-                      <div className="text-lg mb-0.5">{stat.emoji}</div>
-                      <div className="text-lg font-black text-gray-800">{stat.value}</div>
-                      <div className="text-xs text-gray-400">{stat.label}</div>
-                    </div>
-                  ))}
+                <div className="text-right flex-shrink-0">
+                  <div className="text-2xl font-bold text-gray-900">47</div>
+                  <div className="text-xs text-gray-500">events attended</div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+
+              {/* Quick stats */}
+              <div className="grid grid-cols-3 gap-3 mt-5 pt-5 border-t border-gray-100">
+                {[
+                  { value: "$280", label: "saved", icon: DollarSign },
+                  { value: "12", label: "clubs followed", icon: Heart },
+                  { value: "3", label: "this week", icon: Calendar },
+                ].map((stat, i) => (
+                  <div key={i} className="text-center bg-gray-50 rounded-lg p-3">
+                    <stat.icon className="w-4 h-4 mx-auto mb-1 text-gray-400" />
+                    <div className="text-lg font-bold text-gray-900">
+                      {stat.value}
+                    </div>
+                    <div className="text-xs text-gray-500">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Notification Settings */}
-          <Card className="mb-5 rounded-3xl border-0 shadow-lg shadow-orange-50 bg-white">
-            <CardHeader className="pb-2 px-6 pt-6">
-              <CardTitle className="flex items-center gap-2.5 text-base font-black text-gray-900">
-                <div className="w-8 h-8 bg-orange-100 rounded-xl flex items-center justify-center text-base">🔔</div>
+          <Card className="mb-5 rounded-xl border border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-2 px-5 pt-5">
+              <CardTitle className="flex items-center gap-2.5 text-sm font-bold text-gray-900">
+                <Bell className="w-4 h-4 text-gray-500" />
                 Notification Preferences
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-6 pb-6 space-y-3">
+            <CardContent className="px-5 pb-5 space-y-2">
               {NOTIFICATION_PREFS.map((pref) => (
                 <div
                   key={pref.id}
-                  className={`flex items-center justify-between ${pref.bg} rounded-2xl p-4 border border-white`}
+                  className={`flex items-center justify-between ${pref.bg} rounded-lg p-3`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-xl">{pref.emoji}</span>
-                    <Label htmlFor={pref.id} className="flex flex-col gap-0.5 cursor-pointer">
-                      <span className="font-bold text-gray-800 text-sm">{pref.title}</span>
-                      <span className="text-xs text-gray-400 font-normal">{pref.desc}</span>
+                    <pref.icon className="w-4 h-4 text-gray-500" />
+                    <Label
+                      htmlFor={pref.id}
+                      className="flex flex-col gap-0.5 cursor-pointer"
+                    >
+                      <span className="font-semibold text-gray-800 text-sm">
+                        {pref.title}
+                      </span>
+                      <span className="text-xs text-gray-500 font-normal">
+                        {pref.desc}
+                      </span>
                     </Label>
                   </div>
                   <Switch
                     id={pref.id}
                     defaultChecked={pref.defaultChecked}
-                    className="data-[state=checked]:bg-orange-500"
+                    className="data-[state=checked]:bg-orange-600"
                   />
                 </div>
               ))}
@@ -126,35 +145,35 @@ export function Account() {
           </Card>
 
           {/* Favorite Clubs */}
-          <Card className="mb-5 rounded-3xl border-0 shadow-lg shadow-orange-50 bg-white">
-            <CardHeader className="pb-2 px-6 pt-6">
-              <CardTitle className="flex items-center gap-2.5 text-base font-black text-gray-900">
-                <div className="w-8 h-8 bg-rose-100 rounded-xl flex items-center justify-center text-base">❤️</div>
+          <Card className="mb-5 rounded-xl border border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-2 px-5 pt-5">
+              <CardTitle className="flex items-center gap-2.5 text-sm font-bold text-gray-900">
+                <Heart className="w-4 h-4 text-gray-500" />
                 Favourite Clubs
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <p className="text-sm text-gray-400 mb-4">
+            <CardContent className="px-5 pb-5">
+              <p className="text-sm text-gray-500 mb-3">
                 Follow organisations to get priority notifications
               </p>
               <div className="space-y-2 mb-4">
                 {FAVORITE_CLUBS.map((club, i) => (
                   <div
                     key={i}
-                    className={`flex items-center justify-between ${club.color} border rounded-2xl px-4 py-3`}
+                    className={`flex items-center justify-between ${club.color} border rounded-lg px-4 py-2.5`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="text-base">{club.emoji}</span>
-                      <span className="text-sm font-semibold">{club.name}</span>
+                      <club.icon className="w-4 h-4" />
+                      <span className="text-sm font-medium">{club.name}</span>
                     </div>
-                    <span className="text-xs opacity-60">Following</span>
+                    <span className="text-xs text-gray-400">Following</span>
                   </div>
                 ))}
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full rounded-2xl border-dashed border-orange-300 text-orange-500 hover:bg-orange-50 font-semibold"
+                className="w-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50 text-sm"
               >
                 + Add more clubs
               </Button>
@@ -162,40 +181,35 @@ export function Account() {
           </Card>
 
           {/* Account Settings */}
-          <Card className="rounded-3xl border-0 shadow-lg shadow-orange-50 bg-white">
-            <CardHeader className="pb-2 px-6 pt-6">
-              <CardTitle className="flex items-center gap-2.5 text-base font-black text-gray-900">
-                <div className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center text-base">⚙️</div>
+          <Card className="rounded-xl border border-gray-200 shadow-sm bg-white">
+            <CardHeader className="pb-2 px-5 pt-5">
+              <CardTitle className="flex items-center gap-2.5 text-sm font-bold text-gray-900">
+                <Settings className="w-4 h-4 text-gray-500" />
                 Account Settings
               </CardTitle>
             </CardHeader>
-            <CardContent className="px-6 pb-6 space-y-2">
+            <CardContent className="px-5 pb-5 space-y-1">
               {[
-                { label: "Edit Profile", emoji: "✏️", color: "hover:bg-gray-50 text-gray-700" },
-                { label: "Change Password", emoji: "🔒", color: "hover:bg-gray-50 text-gray-700" },
-                { label: "Privacy Settings", emoji: "🛡️", color: "hover:bg-gray-50 text-gray-700" },
-                { label: "Sign Out", emoji: "👋", color: "hover:bg-red-50 text-red-500" },
+                { label: "Edit Profile", icon: Pencil, color: "text-gray-700 hover:bg-gray-50" },
+                { label: "Change Password", icon: Lock, color: "text-gray-700 hover:bg-gray-50" },
+                { label: "Privacy Settings", icon: Shield, color: "text-gray-700 hover:bg-gray-50" },
+                { label: "Sign Out", icon: LogOut, color: "text-red-500 hover:bg-red-50" },
               ].map((item, i) => (
                 <button
                   key={i}
-                  className={`w-full flex items-center justify-between rounded-2xl px-4 py-3.5 transition-colors ${item.color} border border-transparent hover:border-gray-100`}
+                  className={`w-full flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors ${item.color}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-base">{item.emoji}</span>
-                    <span className="text-sm font-semibold">{item.label}</span>
+                  <div className="flex items-center gap-2.5">
+                    <item.icon className="w-4 h-4" />
+                    <span className="text-sm font-medium">{item.label}</span>
                   </div>
                   <ChevronRight className="w-4 h-4 opacity-30" />
                 </button>
               ))}
             </CardContent>
           </Card>
-
         </div>
       </div>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
-      `}</style>
     </Layout>
   );
 }

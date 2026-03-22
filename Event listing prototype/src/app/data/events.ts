@@ -14,6 +14,7 @@ export interface Event {
   lng: number;
 }
 
+// Coordinates centered around UCLA campus area for demo purposes
 export const mockEvents: Event[] = [
   {
     id: "1",
@@ -27,8 +28,8 @@ export const mockEvents: Event[] = [
     foodAvailable: true,
     foodType: "Pizza",
     description: "Join us for our weekly meetup with free pizza! We'll be discussing upcoming hackathons and working on projects together.",
-    lat: 160,
-    lng: 140,
+    lat: 34.0699,
+    lng: -118.4438,
   },
   {
     id: "2",
@@ -42,8 +43,8 @@ export const mockEvents: Event[] = [
     foodAvailable: true,
     foodType: "Tacos",
     description: "Network with fellow business students over free tacos and refreshments. Guest speaker from local startup.",
-    lat: 330,
-    lng: 185,
+    lat: 34.0706,
+    lng: -118.4451,
   },
   {
     id: "3",
@@ -56,8 +57,8 @@ export const mockEvents: Event[] = [
     time: "10:00 AM - 4:00 PM",
     foodAvailable: false,
     description: "Meet with employers from top companies. Bring your resume and dress professionally.",
-    lat: 505,
-    lng: 157,
+    lat: 34.0715,
+    lng: -118.4420,
   },
   {
     id: "4",
@@ -71,8 +72,8 @@ export const mockEvents: Event[] = [
     foodAvailable: true,
     foodType: "Donuts & Coffee",
     description: "Free donuts and coffee provided during finals week. Take a break from studying!",
-    lat: 200,
-    lng: 290,
+    lat: 34.0718,
+    lng: -118.4415,
   },
   {
     id: "5",
@@ -86,8 +87,8 @@ export const mockEvents: Event[] = [
     foodAvailable: true,
     foodType: "Snacks",
     description: "Learn about campus sustainability initiatives. Light snacks and refreshments provided.",
-    lat: 365,
-    lng: 315,
+    lat: 34.0688,
+    lng: -118.4465,
   },
   {
     id: "6",
@@ -101,8 +102,8 @@ export const mockEvents: Event[] = [
     foodAvailable: true,
     foodType: "Popcorn",
     description: "Free movie screening with complimentary popcorn and drinks. This week: recent blockbuster hit!",
-    lat: 535,
-    lng: 297,
+    lat: 34.0725,
+    lng: -118.4405,
   },
   {
     id: "7",
@@ -115,8 +116,8 @@ export const mockEvents: Event[] = [
     time: "2:00 PM",
     foodAvailable: false,
     description: "Annual research presentations by graduate students across all departments.",
-    lat: 250,
-    lng: 435,
+    lat: 34.0675,
+    lng: -118.4480,
   },
   {
     id: "8",
@@ -130,7 +131,7 @@ export const mockEvents: Event[] = [
     foodAvailable: true,
     foodType: "Breakfast",
     description: "Early morning meeting with continental breakfast. Discussing spring marketing campaign projects.",
-    lat: 445,
-    lng: 427,
+    lat: 34.0693,
+    lng: -118.4472,
   },
 ];

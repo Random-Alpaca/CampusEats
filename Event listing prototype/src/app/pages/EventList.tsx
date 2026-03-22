@@ -1,158 +1,154 @@
-import { useState } from "react";
-import { Link } from "react-router";
-import { Map, Search } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { EventCard } from "../components/EventCard";
 import { EventDetailModal } from "../components/EventDetailModal";
-import { Button } from "../components/ui/button";
+import { MapPanel } from "../components/MapPanel";
 import { mockEvents } from "../data/events";
 import { Layout } from "../components/Layout";
 import type { Event } from "../data/events";
 
 const FOOD_FILTERS = [
-  { key: "all", label: "All Events", emoji: "✨" },
-  { key: "food", label: "Food Events", emoji: "🍽️" },
-  { key: "pizza", label: "Pizza", emoji: "🍕" },
-  { key: "drinks", label: "Drinks", emoji: "☕" },
-  { key: "snacks", label: "Snacks", emoji: "🍿" },
+  { key: "all", label: "All" },
+  { key: "food", label: "Food Events" },
+  { key: "pizza", label: "Pizza" },
+  { key: "tacos", label: "Tacos" },
+  { key: "snacks", label: "Snacks" },
+  { key: "drinks", label: "Drinks" },
 ] as const;
 
-type FilterKey = typeof FOOD_FILTERS[number]["key"];
+type FilterKey = (typeof FOOD_FILTERS)[number]["key"];
 
 export function EventList() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
+  const [mapExpanded, setMapExpanded] = useState(false);
 
   const filteredEvents = mockEvents.filter((event) => {
-    const matchesSearch =
-      !searchQuery ||
-      event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.organization?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    if (filter === "all") return matchesSearch;
-    if (filter === "food") return event.foodAvailable && matchesSearch;
+    if (filter === "all") return true;
+    if (filter === "food") return event.foodAvailable;
     if (filter === "pizza")
-      return event.foodType?.toLowerCase().includes("pizza") && matchesSearch;
+      return event.foodType?.toLowerCase().includes("pizza");
+    if (filter === "tacos")
+      return event.foodType?.toLowerCase().includes("taco");
     if (filter === "drinks")
       return (
-        (event.foodType?.toLowerCase().includes("coffee") ||
-          event.foodType?.toLowerCase().includes("drink")) &&
-        matchesSearch
+        event.foodType?.toLowerCase().includes("coffee") ||
+        event.foodType?.toLowerCase().includes("drink")
       );
     if (filter === "snacks")
-      return event.foodType?.toLowerCase().includes("snack") && matchesSearch;
-    return matchesSearch;
+      return event.foodType?.toLowerCase().includes("snack");
+    return true;
   });
+
+  const listWidth = mapExpanded ? "w-[340px]" : "w-[55%]";
+  const mapWidth = mapExpanded ? "flex-1" : "w-[45%]";
+
+  const handleEventClick = useCallback((event: Event) => {
+    setSelectedEvent(event);
+  }, []);
+
+  const handleEventHover = useCallback((id: string | null) => {
+    setHoveredEventId(id);
+  }, []);
 
   return (
     <Layout>
-      {/* Header */}
-      <div className="bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 border-b border-orange-100">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-600 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide mb-3">
-                <span>🗓️</span> Today's Events
-              </div>
-              <h1 className="text-4xl font-black text-gray-900 mb-1">Campus Events</h1>
-              <p className="text-gray-400">Find free food and fun happening around campus</p>
+      <div className="flex h-[calc(100vh-56px)]">
+        {/* LEFT PANEL — Event List */}
+        <div
+          className={`${listWidth} border-r border-gray-200 flex flex-col min-w-0`}
+        >
+          {/* Header */}
+          <div className="px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
+            <h1 className="text-lg font-bold text-gray-900 mb-1">
+              All food events near campus
+            </h1>
+            <p className="text-xs text-gray-500 mb-3">
+              Showing{" "}
+              <span className="font-semibold text-gray-700">
+                {filteredEvents.length}
+              </span>{" "}
+              results
+            </p>
+
+            {/* Filter chips */}
+            <div className="flex flex-wrap gap-1.5">
+              {FOOD_FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setFilter(f.key)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+                    filter === f.key
+                      ? "bg-orange-600 text-white border-orange-600"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
-            <Link to="/map">
-              <Button variant="outline" className="rounded-2xl border-orange-200 text-orange-600 hover:bg-orange-50 gap-2">
-                <Map className="w-4 h-4" />
-                Map View
-              </Button>
-            </Link>
           </div>
 
-          {/* Search bar */}
-          <div className="relative mb-5">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search events or clubs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-2xl border border-orange-200 bg-white text-gray-700 placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:border-transparent text-sm shadow-sm"
-            />
-          </div>
-
-          {/* Filter pills */}
-          <div className="flex flex-wrap gap-2">
-            {FOOD_FILTERS.map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setFilter(f.key)}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-150 border ${
-                  filter === f.key
-                    ? "bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-200"
-                    : "bg-white text-gray-500 border-orange-100 hover:border-orange-300 hover:text-orange-600"
-                }`}
-              >
-                <span>{f.emoji}</span>
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Event grid */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Results count */}
-        <div className="flex items-center justify-between mb-5">
-          <p className="text-sm text-gray-400">
-            Showing <span className="font-bold text-gray-600">{filteredEvents.length}</span>{" "}
-            {filter === "all" ? "events" : "food events"}
-          </p>
-          {filter !== "all" && filteredEvents.length === 0 && (
-            <button
-              onClick={() => setFilter("all")}
-              className="text-sm text-orange-500 hover:underline font-medium"
-            >
-              Clear filter
-            </button>
-          )}
-        </div>
-
-        {filteredEvents.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="text-6xl mb-4">😢</div>
-            <h3 className="text-xl font-bold text-gray-700 mb-2">No events found</h3>
-            <p className="text-gray-400 mb-4">Try a different filter or check back later</p>
-            <Button
-              onClick={() => { setFilter("all"); setSearchQuery(""); }}
-              className="bg-orange-500 hover:bg-orange-600 text-white rounded-2xl"
-            >
-              Show all events
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredEvents.map((event) => (
-              <div
-                key={event.id}
-                className="group cursor-pointer"
-                onClick={() => setSelectedEvent(event)}
-              >
-                {/* Food badge on card */}
-                <div className="relative">
-                  {event.foodAvailable && (
-                    <div className="absolute top-3 left-3 z-10 bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md flex items-center gap-1">
-                      <span>🍽️</span> Free Food!
-                    </div>
-                  )}
-                  <div className="group-hover:-translate-y-1 transition-transform duration-200">
-                    <EventCard
-                      event={event}
-                      onClick={() => setSelectedEvent(event)}
-                    />
-                  </div>
-                </div>
+          {/* Scrollable event list */}
+          <div className="flex-1 overflow-y-auto">
+            {filteredEvents.length === 0 ? (
+              <div className="text-center py-16 px-5">
+                <h3 className="text-base font-semibold text-gray-700 mb-1">
+                  No events found
+                </h3>
+                <p className="text-sm text-gray-400 mb-3">
+                  Try a different filter or check back later
+                </p>
+                <button
+                  onClick={() => setFilter("all")}
+                  className="text-sm text-orange-600 hover:underline font-medium"
+                >
+                  Clear filters
+                </button>
               </div>
-            ))}
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {filteredEvents.map((event, index) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    number={index + 1}
+                    onClick={() => setSelectedEvent(event)}
+                    onMouseEnter={() => setHoveredEventId(event.id)}
+                    onMouseLeave={() => setHoveredEventId(null)}
+                    isHighlighted={hoveredEventId === event.id}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* RIGHT PANEL — Mapbox Map */}
+        <div
+          className={`${mapWidth} relative`}
+        >
+          <MapPanel
+            events={filteredEvents}
+            hoveredEventId={hoveredEventId}
+            onEventHover={handleEventHover}
+            onEventClick={handleEventClick}
+          />
+
+          {/* Expand/collapse button */}
+          <button
+            onClick={() => setMapExpanded(!mapExpanded)}
+            className="absolute top-3 right-3 z-20 bg-white border border-gray-300 rounded-md p-1.5 shadow-sm hover:bg-gray-50 transition-colors"
+            title={mapExpanded ? "Collapse map" : "Expand map"}
+          >
+            {mapExpanded ? (
+              <Minimize2 className="w-4 h-4 text-gray-600" />
+            ) : (
+              <Maximize2 className="w-4 h-4 text-gray-600" />
+            )}
+          </button>
+        </div>
       </div>
 
       {selectedEvent && (
@@ -161,10 +157,6 @@ export function EventList() {
           onClose={() => setSelectedEvent(null)}
         />
       )}
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
-      `}</style>
     </Layout>
   );
 }
