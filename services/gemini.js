@@ -220,8 +220,102 @@ Output:
 Caption to parse:
 `;
 
+/**
+ * Vision: poster / social image → structured event JSON (no prose).
+ */
+const PARSE_EVENT_FROM_IMAGE_PROMPT = `You are extracting structured event information from a poster or social media image.
+
+Instructions:
+1. Read all visible text in the image.
+2. Identify event details (what, where, when, who is hosting).
+3. Detect food or drink mentions (pizza, snacks, drinks, coffee, catering, etc.)—set food_available accordingly and food_type to a short label when known.
+
+Fields (all keys required; use "" if unknown):
+- title, location, time, date, food_type, food_available (boolean), organization
+
+Example — if the image contains:
+"FREE PIZZA NIGHT 🍕
+Engineering Building
+Thursday 6PM
+Hosted by CS Club"
+
+Output:
+{
+  "title": "Pizza Night",
+  "location": "Engineering Building",
+  "time": "6:00 PM",
+  "date": "",
+  "food_type": "Pizza",
+  "food_available": true,
+  "organization": "CS Club"
+}
+
+Return ONLY JSON. No markdown. No explanation.`;
+
 function buildParsePrompt(caption) {
   return `${PARSE_EVENT_PROMPT}${caption}`;
+}
+
+/**
+ * @param {string | null} contentTypeHeader
+ * @param {string} url
+ * @returns {string}
+ */
+function guessImageMimeType(contentTypeHeader, url) {
+  if (contentTypeHeader) {
+    const m = contentTypeHeader.split(';')[0].trim().toLowerCase();
+    if (m.startsWith('image/')) return m;
+  }
+  const path = url.split('?')[0].toLowerCase();
+  if (path.endsWith('.png')) return 'image/png';
+  if (path.endsWith('.webp')) return 'image/webp';
+  if (path.endsWith('.gif')) return 'image/gif';
+  if (path.endsWith('.jpg') || path.endsWith('.jpeg')) return 'image/jpeg';
+  return 'image/jpeg';
+}
+
+/**
+ * Fetches an image over HTTP(S) for Vertex inlineData.
+ * @param {string} imageUrl
+ * @returns {Promise<{ mimeType: string, data: string }>}
+ */
+async function fetchImageAsInlineData(imageUrl) {
+  const url = typeof imageUrl === 'string' ? imageUrl.trim() : '';
+  if (!url) {
+    throw new Error('imageUrl must be a non-empty string');
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error('Invalid image URL');
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Image URL must be http or https');
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  try {
+    const res = await fetch(url, { redirect: 'follow', signal: controller.signal });
+    if (!res.ok) {
+      throw new Error(`Failed to fetch image: HTTP ${res.status}`);
+    }
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length === 0) {
+      throw new Error('Empty image body');
+    }
+    const mimeType = guessImageMimeType(res.headers.get('content-type'), url);
+    return { mimeType, data: buf.toString('base64') };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function emptyEventImageFields() {
+  const { is_happening_soon: _drop, ...rest } = normalizeEvent({}, new Date());
+  return rest;
 }
 
 function stripJsonFence(s) {
@@ -406,7 +500,116 @@ async function parseEvent(text) {
   return normalizeEvent(parsed, new Date());
 }
 
+/**
+ * @returns {Promise<{
+ *   title: string,
+ *   location: string,
+ *   time: string,
+ *   date: string,
+ *   food_type: string,
+ *   food_available: boolean,
+ *   organization: string
+ * }>}
+ */
+async function parseEventFromInlineData(mimeType, base64Data) {
+  const fallback = emptyEventImageFields();
+
+  let responseText;
+  try {
+    const model = getGenerativeModel();
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: PARSE_EVENT_FROM_IMAGE_PROMPT },
+            { inlineData: { mimeType: mimeType, data: base64Data } },
+          ],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: EVENT_RESPONSE_SCHEMA,
+      },
+    });
+    responseText = extractText(result.response);
+  } catch {
+    return fallback;
+  }
+
+  const rawJson = stripJsonFence(responseText);
+  const parsed = safeParseJsonObject(rawJson);
+  if (!parsed) {
+    return fallback;
+  }
+
+  const { is_happening_soon: _drop, ...event } = normalizeEvent(parsed, new Date());
+  return event;
+}
+
+/**
+ * Parse a flyer/poster/screenshot image (via URL) into structured event fields using Gemini multimodal.
+ * On any failure (invalid URL, fetch, API, invalid JSON), returns empty string fields and food_available false.
+ *
+ * @param {string} imageUrl HTTP(S) URL to an image (fetched server-side and sent as inline data).
+ */
+async function parseEventFromImage(imageUrl) {
+  const fallback = emptyEventImageFields();
+
+  let inline;
+  try {
+    inline = await fetchImageAsInlineData(imageUrl);
+  } catch {
+    return fallback;
+  }
+
+  return parseEventFromInlineData(inline.mimeType, inline.data);
+}
+
+/**
+ * JPEG/PNG upload MIME normalization for multipart uploads.
+ * @param {string | undefined} mimetype
+ * @param {string | undefined} originalname
+ * @returns {'image/jpeg' | 'image/png' | null}
+ */
+function resolveUploadedImageMime(mimetype, originalname) {
+  if (mimetype && typeof mimetype === 'string') {
+    const m = mimetype.toLowerCase().split(';')[0].trim();
+    if (m === 'image/jpg' || m === 'image/jpeg' || m === 'image/pjpeg') {
+      return 'image/jpeg';
+    }
+    if (m === 'image/png' || m === 'image/x-png') {
+      return 'image/png';
+    }
+  }
+  if (originalname && typeof originalname === 'string') {
+    const lower = originalname.toLowerCase();
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.png')) return 'image/png';
+  }
+  return null;
+}
+
+/**
+ * Parse an uploaded JPEG/PNG buffer (inline Gemini image).
+ * @param {Buffer} buffer
+ * @param {'image/jpeg' | 'image/png'} mimeType
+ */
+async function parseEventFromImageBuffer(buffer, mimeType) {
+  const fallback = emptyEventImageFields();
+  if (!Buffer.isBuffer(buffer) || buffer.length === 0) {
+    return fallback;
+  }
+  if (mimeType !== 'image/jpeg' && mimeType !== 'image/png') {
+    return fallback;
+  }
+  return parseEventFromInlineData(mimeType, buffer.toString('base64'));
+}
+
 module.exports = {
   generateText,
   parseEvent,
+  parseEventFromImage,
+  parseEventFromImageBuffer,
+  resolveUploadedImageMime,
 };

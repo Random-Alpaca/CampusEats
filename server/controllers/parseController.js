@@ -1,4 +1,9 @@
-const { parseEvent } = require('../../services/gemini');
+const {
+  parseEvent,
+  parseEventFromImage,
+  parseEventFromImageBuffer,
+  resolveUploadedImageMime,
+} = require('../../services/gemini');
 
 /** Placeholder coordinates until geocoding or user-provided location exists */
 const DUMMY_LAT = 37.4274;
@@ -77,6 +82,63 @@ async function parseCaption(req, res, next) {
   }
 }
 
+async function parseImage(req, res, next) {
+  try {
+    const ct = req.headers['content-type'] || '';
+    const isMultipart = ct.includes('multipart/form-data');
+
+    if (req.file) {
+      const mime = resolveUploadedImageMime(req.file.mimetype, req.file.originalname);
+      if (!mime) {
+        return res.status(400).json({
+          error: 'Image must be JPEG or PNG',
+        });
+      }
+      const event = await parseEventFromImageBuffer(req.file.buffer, mime);
+      return res.status(200).json({ event });
+    }
+
+    if (isMultipart) {
+      return res.status(400).json({
+        error:
+          'Missing image file. Send multipart/form-data with field name "image" (JPEG or PNG).',
+      });
+    }
+
+    const { imageUrl } = req.body ?? {};
+
+    if (imageUrl === undefined || imageUrl === null) {
+      return res.status(400).json({
+        error:
+          'Provide either multipart/form-data with field "image" (JPEG/PNG) or JSON body with imageUrl',
+      });
+    }
+    if (typeof imageUrl !== 'string') {
+      return res.status(400).json({ error: 'imageUrl must be a string' });
+    }
+    const trimmed = imageUrl.trim();
+    if (trimmed === '') {
+      return res.status(400).json({ error: 'imageUrl must not be empty' });
+    }
+
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(trimmed);
+    } catch {
+      return res.status(400).json({ error: 'imageUrl must be a valid URL' });
+    }
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return res.status(400).json({ error: 'imageUrl must use http or https' });
+    }
+
+    const event = await parseEventFromImage(trimmed);
+    return res.status(200).json({ event });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   parseCaption,
+  parseImage,
 };
