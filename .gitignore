@@ -9,5 +9,4 @@ config/firebase-service-account.json
 
 # Instagram scraper
 .user_data/
-data/scraped_posts.json
 tools/follow-accounts/accounts_to_follow.txt
