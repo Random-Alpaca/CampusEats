@@ -3,7 +3,9 @@
   "private": true,
   "scripts": {
     "start": "node server/index.js",
-    "seed:events": "node scripts/seed-events.js"
+    "seed:events": "node scripts/seed-events.js",
+    "scrape:instagram": "node scripts/scrape-instagram.js",
+    "follow:instagram": "node tools/follow-accounts/follow-instagram.js"
   },
   "dependencies": {
     "@google-cloud/vertexai": "^1.10.2",
@@ -11,6 +13,9 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "firebase-admin": "^13.0.0",
-    "ics": "^3.9.0"
+    "ics": "^3.9.0",
+    "puppeteer-core": "^24.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }

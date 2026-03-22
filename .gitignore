@@ -6,3 +6,8 @@ curl_out.txt
 config/firebase-service-account.json
 **/firebase-adminsdk*.json
 *-firebase-adminsdk-*.json
+
+# Instagram scraper
+.user_data/
+data/scraped_posts.json
+tools/follow-accounts/accounts_to_follow.txt
