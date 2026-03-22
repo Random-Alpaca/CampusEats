@@ -88,6 +88,8 @@ function emptyEvent() {
     food_type: '',
     food_available: false,
     organization: '',
+    lat: null,
+    lng: null,
     is_happening_soon: false,
   };
 }
@@ -208,6 +210,9 @@ const EVENT_RESPONSE_SCHEMA = {
     food_type: { type: S.STRING },
     food_available: { type: S.BOOLEAN },
     organization: { type: S.STRING },
+    /** Decimal degrees as strings, e.g. "37.4302"; "" when unknown (matches other string fields). */
+    lat: { type: S.STRING },
+    lng: { type: S.STRING },
   },
   required: [
     'title',
@@ -217,6 +222,8 @@ const EVENT_RESPONSE_SCHEMA = {
     'food_type',
     'food_available',
     'organization',
+    'lat',
+    'lng',
   ],
 };
 
@@ -237,6 +244,7 @@ JSON shape (all keys required):
 - food_type: short label using common categories when possible (e.g. Pizza, Snacks, Drinks, Coffee, Tacos, Donuts), or "".
 - food_available: true if food or drink is mentioned (pizza, snacks, drinks, coffee, donuts, tacos, catering, etc.); false if not mentioned.
 - organization: host club, company, or group if clear, or "".
+- lat, lng: WGS84 decimal degrees for the event building or venue, as strings (e.g. "49.2606", "-123.2460"). Use your knowledge of the named place plus any campus, city, or university mentioned in the caption, bio, or hashtags to pick plausible coordinates for that building. If the place cannot be placed confidently, use "" for both.
 
 Use "" for any string you cannot determine. food_available must be false when no food or drink is mentioned.
 
@@ -253,7 +261,9 @@ Output:
   "date": "",
   "food_type": "Pizza",
   "food_available": true,
-  "organization": ""
+  "organization": "",
+  "lat": "49.2606",
+  "lng": "-123.2460"
 }
 
 ---
@@ -270,9 +280,10 @@ Instructions:
 1. Read all visible text in the image.
 2. Identify event details (what, where, when, who is hosting).
 3. Detect food or drink mentions (pizza, snacks, drinks, coffee, catering, etc.)—set food_available accordingly and food_type to a short label when known.
+4. Infer lat and lng (WGS84 decimal degrees, as strings like "37.4302" and "-122.1721") for the named venue or building when you can place it using visible location cues (university name, city, landmark). Use "" for both if the location is unknown or too vague.
 
 Fields (all keys required; use "" if unknown):
-- title, location, time, date, food_type, food_available (boolean), organization
+- title, location, time, date, food_type, food_available (boolean), organization, lat (string), lng (string)
 
 Example — if the image contains:
 "FREE PIZZA NIGHT 🍕
@@ -288,7 +299,9 @@ Output:
   "date": "",
   "food_type": "Pizza",
   "food_available": true,
-  "organization": "CS Club"
+  "organization": "CS Club",
+  "lat": "",
+  "lng": ""
 }
 
 Return ONLY JSON. No markdown. No explanation.`;
@@ -525,6 +538,35 @@ function toStrictBoolean(value) {
   return false;
 }
 
+/** @param {unknown} value */
+function toCoordinateNumber(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const t = value.trim();
+    if (t === '') return null;
+    const n = parseFloat(t);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+/** @param {unknown} value @returns {number | null} */
+function toLatitude(value) {
+  const n = toCoordinateNumber(value);
+  if (n === null) return null;
+  if (n < -90 || n > 90) return null;
+  return n;
+}
+
+/** @param {unknown} value @returns {number | null} */
+function toLongitude(value) {
+  const n = toCoordinateNumber(value);
+  if (n === null) return null;
+  if (n < -180 || n > 180) return null;
+  return n;
+}
+
 function safeParseJsonObject(text) {
   try {
     const data = JSON.parse(text);
@@ -547,6 +589,10 @@ function normalizeEvent(raw, now = new Date()) {
     foodType = 'Unspecified';
   }
 
+  const lat = toLatitude(raw.lat);
+  const lng = toLongitude(raw.lng);
+  const hasPair = lat !== null && lng !== null;
+
   const event = {
     title: toTrimmedString(raw.title),
     location: toTrimmedString(raw.location),
@@ -555,6 +601,8 @@ function normalizeEvent(raw, now = new Date()) {
     food_type: foodType,
     food_available: toStrictBoolean(raw.food_available),
     organization: toTrimmedString(raw.organization),
+    lat: hasPair ? lat : null,
+    lng: hasPair ? lng : null,
   };
 
   return {
@@ -719,6 +767,8 @@ function heuristicParseCaptionToEvent(trimmedCaption, now = new Date()) {
       food_type,
       food_available,
       organization,
+      lat: '',
+      lng: '',
     },
     now
   );
@@ -751,6 +801,8 @@ async function generateText(prompt) {
  *   food_type: string,
  *   food_available: boolean,
  *   organization: string,
+ *   lat: number | null,
+ *   lng: number | null,
  *   is_happening_soon: boolean
  * }>}
  */
@@ -814,7 +866,9 @@ async function parseEvent(text) {
  *   date: string,
  *   food_type: string,
  *   food_available: boolean,
- *   organization: string
+ *   organization: string,
+ *   lat: number | null,
+ *   lng: number | null
  * }>}
  */
 async function parseEventFromInlineData(mimeType, base64Data) {

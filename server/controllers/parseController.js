@@ -30,7 +30,19 @@ function hasRequiredFieldsForCore(event) {
   );
 }
 
+function pickLatLng(parsed_event) {
+  const lat = parsed_event?.lat;
+  const lng = parsed_event?.lng;
+  if (typeof lat === 'number' && typeof lng === 'number') {
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng };
+    }
+  }
+  return { lat: DUMMY_LAT, lng: DUMMY_LNG };
+}
+
 async function saveParsedEventToCore(parsed_event) {
+  const { lat, lng } = pickLatLng(parsed_event);
   const body = {
     title: parsed_event.title,
     location: parsed_event.location,
@@ -38,8 +50,8 @@ async function saveParsedEventToCore(parsed_event) {
     food_type: parsed_event.food_type,
     organization: parsed_event.organization || '',
     date: parsed_event.date || '',
-    lat: DUMMY_LAT,
-    lng: DUMMY_LNG,
+    lat,
+    lng,
   };
 
   const res = await fetch(`${coreApiBaseUrl()}/events`, {
