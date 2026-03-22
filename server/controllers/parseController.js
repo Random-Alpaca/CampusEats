@@ -14,6 +14,22 @@ function coreApiBaseUrl() {
   return raw.replace(/\/$/, '');
 }
 
+/** Matches Core POST /events validation (non-empty strings). */
+function hasRequiredFieldsForCore(event) {
+  if (!event || typeof event !== 'object') return false;
+  const { title, location, time, food_type } = event;
+  return (
+    typeof title === 'string' &&
+    title.trim() !== '' &&
+    typeof location === 'string' &&
+    location.trim() !== '' &&
+    typeof time === 'string' &&
+    time.trim() !== '' &&
+    typeof food_type === 'string' &&
+    food_type.trim() !== ''
+  );
+}
+
 async function saveParsedEventToCore(parsed_event) {
   const body = {
     title: parsed_event.title,
@@ -66,6 +82,14 @@ async function parseCaption(req, res, next) {
 
     const parsed_event = await parseEvent(text);
 
+    if (!hasRequiredFieldsForCore(parsed_event)) {
+      return res.status(422).json({
+        error:
+          'Parser did not extract title, location, time, and food type from the caption. Check PROJECT_ID, LOCATION, and Vertex AI access, or set GEMINI_DEBUG=1 on the server for details.',
+        parsed_event,
+      });
+    }
+
     try {
       const saved_event = await saveParsedEventToCore(parsed_event);
       return res.status(200).json({ parsed_event, saved_event });
@@ -93,7 +117,7 @@ async function parseImage(req, res, next) {
       const mime = resolveUploadedImageMime(req.file.mimetype, req.file.originalname);
       if (!mime) {
         return res.status(400).json({
-          error: 'Image must be JPEG or PNG',
+          error: 'Image must be JPEG, PNG, or WebP',
         });
       }
       const event = await parseEventFromImageBuffer(req.file.buffer, mime);
@@ -103,7 +127,7 @@ async function parseImage(req, res, next) {
     if (isMultipart) {
       return res.status(400).json({
         error:
-          'Missing image file. Send multipart/form-data with field name "image" (JPEG or PNG).',
+          'Missing image file. Send multipart/form-data with field name "image" (JPEG, PNG, or WebP).',
       });
     }
 
@@ -112,7 +136,7 @@ async function parseImage(req, res, next) {
     if (imageUrl === undefined || imageUrl === null) {
       return res.status(400).json({
         error:
-          'Provide either multipart/form-data with field "image" (JPEG/PNG) or JSON body with imageUrl',
+          'Provide either multipart/form-data with field "image" (JPEG/PNG/WebP) or JSON body with imageUrl',
       });
     }
     if (typeof imageUrl !== 'string') {
@@ -136,6 +160,13 @@ async function parseImage(req, res, next) {
     const event = await parseEventFromImage(trimmed);
     return res.status(200).json({ event });
   } catch (err) {
+    if (err && err.code === 'IMAGE_FETCH_FAILED') {
+      return res.status(422).json({
+        error: err.message,
+        hint:
+          'Instagram and some CDNs block server downloads or expire links. Save the image (right-click → Save) and POST it with: curl -F "image=@yourfile.webp" http://127.0.0.1:3000/parse-image',
+      });
+    }
     return next(err);
   }
 }
