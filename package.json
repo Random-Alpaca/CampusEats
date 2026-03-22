@@ -5,6 +5,7 @@
     "start": "node server/index.js",
     "seed:events": "node scripts/seed-events.js",
     "scrape:instagram": "node scripts/scrape-instagram.js",
+    "import:scraped": "node scripts/import-scraped-posts.js",
     "follow:instagram": "node tools/follow-accounts/follow-instagram.js"
   },
   "dependencies": {

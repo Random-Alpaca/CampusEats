@@ -10,4 +10,6 @@ config/firebase-service-account.json
 # Instagram scraper
 .user_data/
 data/images/
+# Import script dedupe manifest (scripts/import-scraped-posts.js)
+data/imported_post_ids.json
 tools/follow-accounts/accounts_to_follow.txt
