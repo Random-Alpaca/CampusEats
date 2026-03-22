@@ -103,7 +103,7 @@ export function Home() {
               </Link>
               <Link to="/map">
                 <Button size="lg" variant="outline" className="rounded-2xl border-orange-200 text-orange-600 hover:bg-orange-50 font-semibold px-6 py-3 text-base">
-                  🗺️ View Map
+                  View Map
                 </Button>
               </Link>
             </motion.div>
@@ -174,11 +174,11 @@ export function Home() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-white text-center">
             {[
-              { value: "340+", label: "Events this month", icon: "📅" },
-              { value: "48", label: "Campus clubs tracked", icon: "🏫" },
-              { value: "2.4k", label: "Happy students", icon: "😋" },
-              { value: "$0", label: "Cost to you", icon: "💸" },
-              { value: "1.7 tons", label: "Food waste reduced monthly", icon: "♻️" },
+              { value: "340+", label: "Events this month", img: "/images/HomePage/11.png" },
+              { value: "48", label: "Campus clubs tracked", img: "/images/HomePage/12.png" },
+              { value: "2.4k", label: "Happy students", img: "/images/HomePage/10.png" },
+              { value: "$0", label: "Cost to you", img: "/images/HomePage/13.png" },
+              { value: "1.7 tons", label: "Food waste reduced monthly", img: "/images/HomePage/14.png" },
             ].map((stat, i) => (
               <motion.div
                 key={i}
@@ -186,8 +186,11 @@ export function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
+                className="flex flex-col items-center justify-center"
               >
-                <div className="text-2xl mb-1">{stat.icon}</div>
+                <div className="w-20 h-20 mb-3 transform hover:scale-110 transition-transform duration-300">
+                  <img src={stat.img} alt={stat.label} className="w-full h-full object-contain" />
+                </div>
                 <div className="text-2xl font-black">{stat.value}</div>
                 <div className="text-orange-100 text-sm">{stat.label}</div>
               </motion.div>
