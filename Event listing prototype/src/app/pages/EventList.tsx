@@ -1,11 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { EventCard } from "../components/EventCard";
 import { EventDetailModal } from "../components/EventDetailModal";
 import { MapPanel } from "../components/MapPanel";
-import { mockEvents } from "../data/events";
 import { Layout } from "../components/Layout";
-import type { Event } from "../data/events";
+import { fetchEvents } from "../services/api";
+import type { Event } from "../services/api";
 
 const FOOD_FILTERS = [
   { key: "all", label: "All" },
@@ -19,12 +19,28 @@ const FOOD_FILTERS = [
 type FilterKey = (typeof FOOD_FILTERS)[number]["key"];
 
 export function EventList() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const [mapExpanded, setMapExpanded] = useState(false);
 
-  const filteredEvents = mockEvents.filter((event) => {
+  useEffect(() => {
+    fetchEvents()
+      .then((data) => {
+        setEvents(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load events:", err);
+        setError("Could not load events. Is the backend running?");
+        setLoading(false);
+      });
+  }, []);
+
+  const filteredEvents = events.filter((event) => {
     if (filter === "all") return true;
     if (filter === "food") return event.foodAvailable;
     if (filter === "pizza")
@@ -92,7 +108,18 @@ export function EventList() {
 
           {/* Scrollable event list */}
           <div className="flex-1 overflow-y-auto">
-            {filteredEvents.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-16 px-5">
+                <p className="text-sm text-gray-400">Loading events...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-16 px-5">
+                <h3 className="text-base font-semibold text-red-600 mb-1">
+                  Error
+                </h3>
+                <p className="text-sm text-gray-500">{error}</p>
+              </div>
+            ) : filteredEvents.length === 0 ? (
               <div className="text-center py-16 px-5">
                 <h3 className="text-base font-semibold text-gray-700 mb-1">
                   No events found

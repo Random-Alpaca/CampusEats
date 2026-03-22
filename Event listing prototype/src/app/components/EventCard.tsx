@@ -1,6 +1,6 @@
 import { Calendar, MapPin, Clock, UtensilsCrossed } from "lucide-react";
 import { Badge } from "./ui/badge";
-import type { Event } from "../data/events";
+import type { Event } from "../services/api";
 
 interface EventCardProps {
   event: Event;
@@ -20,7 +20,8 @@ export function EventCard({
   isHighlighted,
 }: EventCardProps) {
   // Generate a deterministic color for the placeholder image based on event id
-  const hue = (parseInt(event.id, 10) * 47) % 360;
+  const hash = event.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const hue = (hash * 47) % 360;
   const placeholderBg = `hsl(${hue}, 35%, 85%)`;
   const placeholderFg = `hsl(${hue}, 40%, 55%)`;
 
@@ -61,13 +62,7 @@ export function EventCard({
           )}
         </div>
 
-        <p className="text-sm text-gray-500 mb-2">{event.organization}</p>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
-          <span className="inline-flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
-            {event.date}
-          </span>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 mt-1">
           <span className="inline-flex items-center gap-1">
             <Clock className="w-3.5 h-3.5" />
             {event.time}

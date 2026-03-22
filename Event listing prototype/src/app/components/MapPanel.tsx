@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { Locate } from "lucide-react";
-import type { Event } from "../data/events";
+import type { Event } from "../services/api";
 
 interface MapPanelProps {
   events: Event[];
@@ -65,6 +65,20 @@ export function MapPanel({
     };
   }, []);
 
+  // Auto-fit map to events whenever they change
+  useEffect(() => {
+    if (!map.current || events.length === 0) return;
+
+    const bounds = new mapboxgl.LngLatBounds();
+    events.forEach((e) => bounds.extend([e.lng, e.lat]));
+
+    map.current.fitBounds(bounds, {
+      padding: 50,
+      maxZoom: 16,
+      duration: 0, // instant on initial load
+    });
+  }, [events]);
+
   // Create/update markers when events change
   useEffect(() => {
     if (!map.current) return;
@@ -111,9 +125,7 @@ export function MapPanel({
     const html = `
       <div class="map-popup">
         <div class="map-popup-title">${event.name}</div>
-        <div class="map-popup-org">${event.organization}</div>
         <div class="map-popup-details">
-          <span>${event.date}</span>
           <span>${event.time}</span>
         </div>
         <div class="map-popup-location">${event.location}</div>
