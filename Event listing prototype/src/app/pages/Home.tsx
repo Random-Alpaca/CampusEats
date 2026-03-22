@@ -29,7 +29,7 @@ export function Home() {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative min-h-[580px] overflow-hidden bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
+      <section className="relative min-h-[580px] overflow-hidden bg-white">
         {/* Decorative blob shapes */}
         <div className="absolute top-[-60px] right-[-60px] w-80 h-80 rounded-full bg-orange-200/40 blur-3xl" />
         <div className="absolute bottom-[-40px] left-[-40px] w-64 h-64 rounded-full bg-amber-200/40 blur-3xl" />

@@ -73,10 +73,14 @@ export function EventList() {
       <div className="flex h-[calc(100vh-56px)]">
         {/* LEFT PANEL — Event List */}
         <div
-          className={`${listWidth} border-r border-gray-200 flex flex-col min-w-0`}
+          className={`${listWidth} border-r border-gray-200 flex flex-col min-w-0 bg-white relative`}
         >
+          {/* Decorative blob shapes */}
+          <div className="absolute top-[-60px] right-[-60px] w-80 h-80 rounded-full bg-orange-200/20 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-[-40px] left-[-40px] w-64 h-64 rounded-full bg-amber-200/20 blur-3xl pointer-events-none" />
+
           {/* Header */}
-          <div className="px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0">
+          <div className="px-5 pt-5 pb-3 border-b border-gray-100 flex-shrink-0 relative z-10">
             <h1 className="text-lg font-bold text-gray-900 mb-1">
               All food events near campus
             </h1>
@@ -94,11 +98,10 @@ export function EventList() {
                 <button
                   key={f.key}
                   onClick={() => setFilter(f.key)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
-                    filter === f.key
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${filter === f.key
                       ? "bg-orange-600 text-white border-orange-600"
                       : "bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
+                    }`}
                 >
                   {f.label}
                 </button>
