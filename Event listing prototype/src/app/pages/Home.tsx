@@ -66,8 +66,7 @@ export function Home() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.4 }}
             >
-              <span className="text-base">🍕</span>
-              Free food tracker for broke students
+              Good for the students. Better for the planet.
             </motion.div>
 
             <motion.h1
@@ -99,7 +98,7 @@ export function Home() {
             >
               <Link to="/events">
                 <Button size="lg" className="bg-orange-500 hover:bg-orange-600 text-white rounded-2xl shadow-lg shadow-orange-200 font-semibold px-6 py-3 text-base">
-                  🍽️ Find Free Food Now
+                  Find Free Food Now
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </Link>
@@ -139,7 +138,7 @@ export function Home() {
               {/* Main image */}
               <div className="rounded-3xl overflow-hidden shadow-2xl shadow-orange-200/60 border-4 border-white">
                 <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1628941018521-a4a5f283f22a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx3YXJtJTIwcGl6emElMjBzdW5zZXQlMjBmb29kJTIwZ2F0aGVyaW5nfGVufDF8fHx8MTc3NDEyMDIxMHww&ixlib=rb-4.1.0&q=80&w=1080"
+                  src="/images/HomePage/9.png?v=1"
                   alt="Students enjoying free food at campus event"
                   className="w-full h-72 object-cover"
                 />
@@ -174,12 +173,13 @@ export function Home() {
       {/* Stats strip */}
       <section className="bg-orange-500 py-6">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-white text-center">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-white text-center">
             {[
               { value: "340+", label: "Events this month", icon: "📅" },
               { value: "48", label: "Campus clubs tracked", icon: "🏫" },
               { value: "2.4k", label: "Happy students", icon: "😋" },
               { value: "$0", label: "Cost to you", icon: "💸" },
+              { value: "1.7 tons", label: "Food waste reduced monthly", icon: "♻️" },
             ].map((stat, i) => (
               <motion.div
                 key={i}
