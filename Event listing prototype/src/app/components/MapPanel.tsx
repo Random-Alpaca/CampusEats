@@ -125,7 +125,9 @@ export function MapPanel({
     const html = `
       <div class="map-popup">
         <div class="map-popup-title">${event.name}</div>
+        ${event.organization ? `<div class="map-popup-org">${event.organization}</div>` : ""}
         <div class="map-popup-details">
+          ${event.date ? `<span>${event.date}</span>` : ""}
           <span>${event.time}</span>
         </div>
         <div class="map-popup-location">${event.location}</div>

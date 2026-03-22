@@ -19,7 +19,6 @@ export function EventCard({
   onMouseLeave,
   isHighlighted,
 }: EventCardProps) {
-  // Generate a deterministic color for the placeholder image based on event id
   const hash = event.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const hue = (hash * 47) % 360;
   const placeholderBg = `hsl(${hue}, 35%, 85%)`;
@@ -62,7 +61,17 @@ export function EventCard({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 mt-1">
+        {event.organization && (
+          <p className="text-sm text-gray-500 mb-1">{event.organization}</p>
+        )}
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500">
+          {event.date && (
+            <span className="inline-flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" />
+              {event.date}
+            </span>
+          )}
           <span className="inline-flex items-center gap-1">
             <Clock className="w-3.5 h-3.5" />
             {event.time}
