@@ -12,7 +12,7 @@ const clubs = [
   { id: 3, name: "CUS", img: "/images/HomePage/icons/cus.png" },
   { id: 4, name: "HEWE", img: "/images/HomePage/icons/hewe.jpg" },
   { id: 5, name: "Marketing Association", img: "/images/HomePage/icons/ma.jpg" },
-  { id: 6, name: "UBC Summit", img: "/images/HomePage/icons/summit.png" },
+  { id: 6, name: "Sauder Summit", img: "/images/HomePage/icons/summit.png" },
   { id: 7, name: "Young Women in Business", img: "/images/HomePage/icons/ywib.jpg" },
   { id: 8, name: "nwPlus", img: "/images/HomePage/icons/nwPlus.png" },
   { id: 9, name: "POITS", img: "/images/HomePage/icons/poits.png" },
@@ -191,7 +191,7 @@ export function Home() {
       <section className="py-14 bg-amber-50 border-y border-amber-100">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-8">
-            <span className="inline-block bg-amber-100 text-amber-700 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide mb-2">Tracked Organizations</span>
+            <span className="inline-block text-amber-700 text-sm font-bold uppercase tracking-widest mb-2">Tracked Organizations</span>
             <h2 className="text-2xl font-black text-gray-800">Active Campus Clubs</h2>
           </div>
           <div className="relative overflow-hidden">
@@ -222,7 +222,7 @@ export function Home() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-14">
-            <span className="inline-block bg-orange-100 text-orange-600 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide mb-3">How it works</span>
+            <span className="inline-block text-amber-700 text-sm font-bold uppercase tracking-widest mb-3">How it works</span>
             <h2 className="text-3xl font-black text-gray-900">Campus Eats in 4 steps</h2>
           </div>
 
@@ -290,9 +290,9 @@ export function Home() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {[
               { img: "/images/HomePage/5.png", name: "Pizza", count: "142 events", color: "bg-orange-100 border-orange-200" },
-              { img: "/images/HomePage/5.png", name: "Tacos", count: "38 events", color: "bg-orange-100 border-orange-200" },
+              { img: "/images/HomePage/16.png", name: "Pasta", count: "38 events", color: "bg-orange-100 border-orange-200" },
               { img: "/images/HomePage/8.png", name: "Baked goods", count: "56 events", color: "bg-orange-100 border-orange-200" },
-              { img: "/images/HomePage/8.png", name: "Donuts", count: "24 events", color: "bg-orange-100 border-orange-200" },
+              { img: "/images/HomePage/15.png", name: "Donuts", count: "24 events", color: "bg-orange-100 border-orange-200" },
               { img: "/images/HomePage/6.png", name: "Salads", count: "19 events", color: "bg-orange-100 border-orange-200" },
               { img: "/images/HomePage/7.png", name: "Coffee", count: "87 events", color: "bg-orange-100 border-orange-200" },
             ].map((food, i) => (

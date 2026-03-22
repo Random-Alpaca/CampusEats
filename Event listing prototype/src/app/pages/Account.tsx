@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   User,
   Bell,
@@ -13,6 +14,9 @@ import {
   Shield,
   LogOut,
   Pencil,
+  Plus,
+  Leaf,
+  Activity,
 } from "lucide-react";
 import { Layout } from "../components/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
@@ -20,10 +24,20 @@ import { Button } from "../components/ui/button";
 import { Switch } from "../components/ui/switch";
 import { Label } from "../components/ui/label";
 
-const FAVORITE_CLUBS = [
-  { name: "Computer Science Club", icon: Settings, color: "bg-blue-50 text-blue-700 border-blue-100" },
-  { name: "Business Association", icon: Star, color: "bg-purple-50 text-purple-700 border-purple-100" },
-  { name: "Engineering Society", icon: Settings, color: "bg-gray-50 text-gray-700 border-gray-100" },
+const ALL_CLUBS = [
+  { id: 1, name: "UBC BizTech", img: "/images/HomePage/icons/biztech.jpg" },
+  { id: 2, name: "BUCS", img: "/images/HomePage/icons/BUCS.png" },
+  { id: 3, name: "CUS", img: "/images/HomePage/icons/cus.png" },
+  { id: 4, name: "HEWE", img: "/images/HomePage/icons/hewe.jpg" },
+  { id: 5, name: "Marketing Association", img: "/images/HomePage/icons/ma.jpg" },
+  { id: 6, name: "Sauder Summit", img: "/images/HomePage/icons/summit.png" },
+  { id: 7, name: "Young Women in Business", img: "/images/HomePage/icons/ywib.jpg" },
+  { id: 8, name: "nwPlus", img: "/images/HomePage/icons/nwPlus.png" },
+  { id: 9, name: "POITS", img: "/images/HomePage/icons/poits.png" },
+  { id: 10, name: "SFU ACE", img: "/images/HomePage/icons/SFU ACE.png" },
+  { id: 11, name: "SFU ASA", img: "/images/HomePage/icons/SFU ASA.png" },
+  { id: 12, name: "SFU Enactus", img: "/images/HomePage/icons/SFU enactus.png" },
+  { id: 13, name: "Commerce Night", img: "/images/HomePage/icons/commerce night.jpg" },
 ];
 
 const NOTIFICATION_PREFS = [
@@ -54,6 +68,9 @@ const NOTIFICATION_PREFS = [
 ];
 
 export function Account() {
+  const [followedIds, setFollowedIds] = useState<number[]>([1, 2, 3]);
+  const [showAddClubs, setShowAddClubs] = useState(false);
+
   return (
     <Layout>
       <div className="bg-gray-50 min-h-screen">
@@ -103,6 +120,44 @@ export function Account() {
                   </div>
                 ))}
               </div>
+
+              {/* Impact Report */}
+              <div className="mt-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="bg-green-100 p-1.5 rounded-lg">
+                    <Leaf className="w-4 h-4 text-green-600" />
+                  </div>
+                  <h3 className="font-bold text-gray-900 text-sm">Your Campus Impact</h3>
+                </div>
+
+                <div className="space-y-4 flex flex-col">
+                  {/* Environmental Impact */}
+                  <div>
+                    <div className="flex justify-between items-center text-xs mb-1.5">
+                      <span className="font-semibold text-gray-700 flex items-center gap-1.5">
+                        <Leaf className="w-3 h-3 text-green-500" /> Food Waste Prevented
+                      </span>
+                      <span className="text-green-700 font-bold bg-green-100/50 px-2 py-0.5 rounded-md">12.5 kg</span>
+                    </div>
+                    <div className="w-full bg-green-200/50 rounded-full h-2">
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '75%' }}></div>
+                    </div>
+                  </div>
+
+                  {/* Nutrition Bar */}
+                  <div>
+                    <div className="flex justify-between items-center text-xs mb-1.5">
+                      <span className="font-semibold text-gray-700 flex items-center gap-1.5">
+                        <Activity className="w-3 h-3 text-orange-500" /> Healthy Meals Secured
+                      </span>
+                      <span className="text-orange-600 font-bold bg-orange-100/50 px-2 py-0.5 rounded-md">24 meals</span>
+                    </div>
+                    <div className="w-full bg-orange-100 rounded-full h-2">
+                      <div className="bg-orange-500 h-2 rounded-full" style={{ width: '60%' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -124,7 +179,7 @@ export function Account() {
                     <pref.icon className="w-4 h-4 text-gray-500" />
                     <Label
                       htmlFor={pref.id}
-                      className="flex flex-col gap-0.5 cursor-pointer"
+                      className="flex flex-col items-start gap-0.5 cursor-pointer text-left"
                     >
                       <span className="font-semibold text-gray-800 text-sm">
                         {pref.title}
@@ -156,27 +211,77 @@ export function Account() {
               <p className="text-sm text-gray-500 mb-3">
                 Follow organisations to get priority notifications
               </p>
+
               <div className="space-y-2 mb-4">
-                {FAVORITE_CLUBS.map((club, i) => (
+                {ALL_CLUBS.filter(c => followedIds.includes(c.id)).length === 0 && (
+                  <div className="text-sm text-gray-400 text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                    You aren't following any clubs yet.
+                  </div>
+                )}
+                {ALL_CLUBS.filter(c => followedIds.includes(c.id)).map((club) => (
                   <div
-                    key={i}
-                    className={`flex items-center justify-between ${club.color} border rounded-lg px-4 py-2.5`}
+                    key={club.id}
+                    className="flex justify-between items-center bg-white border shadow-sm border-gray-200 rounded-lg px-4 py-2.5"
                   >
-                    <div className="flex items-center gap-2.5">
-                      <club.icon className="w-4 h-4" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-md overflow-hidden bg-white border border-gray-100 flex items-center justify-center shadow-sm">
+                        <img src={club.img} alt={club.name} className="w-full h-full object-cover" />
+                      </div>
                       <span className="text-sm font-medium">{club.name}</span>
                     </div>
-                    <span className="text-xs text-gray-400">Following</span>
+                    <button
+                      onClick={() => setFollowedIds(prev => prev.filter(id => id !== club.id))}
+                      className="text-xs font-semibold text-gray-500 hover:text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors bg-gray-50 px-2.5 py-1 rounded-md border border-gray-200 cursor-pointer shadow-sm"
+                    >
+                      Unfollow
+                    </button>
                   </div>
                 ))}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50 text-sm"
-              >
-                + Add more clubs
-              </Button>
+
+              {!showAddClubs ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAddClubs(true)}
+                  className="w-full border-dashed border-gray-300 text-gray-500 hover:bg-gray-50 text-sm py-5 shadow-sm"
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Add more clubs
+                </Button>
+              ) : (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-bold text-gray-900">Discover Clubs</h4>
+                    <button onClick={() => setShowAddClubs(false)} className="text-xs font-semibold text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded">Close</button>
+                  </div>
+                  <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+                    {ALL_CLUBS.filter(c => !followedIds.includes(c.id)).map(club => (
+                      <div
+                        key={club.id}
+                        className="flex justify-between items-center bg-gray-50 border border-transparent hover:border-orange-200 rounded-lg px-3 py-2 transition-all shadow-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-6 h-6 rounded-md overflow-hidden bg-white border border-gray-200 shadow-sm">
+                            <img src={club.img} alt={club.name} className="w-full h-full object-cover" />
+                          </div>
+                          <span className="text-sm font-medium text-gray-700">{club.name}</span>
+                        </div>
+                        <button
+                          onClick={() => setFollowedIds(prev => [...prev, club.id])}
+                          className="text-xs font-bold text-orange-600 bg-orange-100 hover:bg-orange-500 hover:text-white transition-colors px-3 py-1 rounded-full cursor-pointer shadow-sm"
+                        >
+                          Follow
+                        </button>
+                      </div>
+                    ))}
+                    {ALL_CLUBS.filter(c => !followedIds.includes(c.id)).length === 0 && (
+                      <div className="text-sm text-gray-400 text-center py-4 bg-gray-50 rounded-lg">
+                        You follow all available clubs! 🎉
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
