@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Calendar, MapPin, Clock, UtensilsCrossed } from "lucide-react";
 import { Badge } from "./ui/badge";
 import type { Event } from "../services/api";
@@ -19,10 +20,16 @@ export function EventCard({
   onMouseLeave,
   isHighlighted,
 }: EventCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const hash = event.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const hue = (hash * 47) % 360;
   const placeholderBg = `hsl(${hue}, 35%, 85%)`;
   const placeholderFg = `hsl(${hue}, 40%, 55%)`;
+  const showEventImage = !!event.imageUrl && !imageFailed;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [event.imageUrl]);
 
   return (
     <div
@@ -35,16 +42,27 @@ export function EventCard({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* Placeholder image */}
       <div
-        className="w-[120px] h-[100px] rounded-lg flex-shrink-0 flex items-center justify-center"
+        className="w-[120px] h-[100px] rounded-lg flex-shrink-0 overflow-hidden"
         style={{ backgroundColor: placeholderBg }}
       >
-        <UtensilsCrossed
-          className="w-8 h-8"
-          style={{ color: placeholderFg }}
-          strokeWidth={1.5}
-        />
+        {showEventImage ? (
+          <img
+            src={event.imageUrl}
+            alt={event.name}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <UtensilsCrossed
+              className="w-8 h-8"
+              style={{ color: placeholderFg }}
+              strokeWidth={1.5}
+            />
+          </div>
+        )}
       </div>
 
       {/* Content */}

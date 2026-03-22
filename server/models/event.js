@@ -22,6 +22,8 @@ async function createEvent(data) {
     organization: String(data.organization ?? ''),
     date: String(data.date ?? ''),
     instagram_url: String(data.instagram_url ?? ''),
+    image_url: String(data.image_url ?? ''),
+    image_local_path: String(data.image_local_path ?? ''),
     votes_available: 0,
     votes_finished: 0,
   };
